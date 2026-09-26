@@ -58,5 +58,7 @@ foreach ($f in $extracted) {
     'extracted: ' + $f.FullName.Substring($testDir.Length) + '  ' + $f.Length + ' bytes'
 }
 'source SHA256:    ' + (Get-FileHash -LiteralPath $Source -Algorithm SHA256).Hash
-'extracted SHA256: ' + (Get-FileHash -LiteralPath (Join-Path $testDir 'BepInEx\plugins\GK2AutoStationService.dll') -Algorithm SHA256).Hash
+if ($extracted.Count -eq 1) {
+    'extracted SHA256: ' + (Get-FileHash -LiteralPath $extracted[0].FullName -Algorithm SHA256).Hash
+}
 Remove-Item -LiteralPath $testDir -Recurse -Force

@@ -1,4 +1,4 @@
-# Nexus 发布文案（Auto Station Service 1.3.2）
+# Nexus 发布文案（Auto Station Service 1.4.0）
 
 下面是可以直接复制粘贴到 Nexus 上传页的内容。上传步骤和检查清单在最下面。
 
@@ -13,7 +13,7 @@ Auto Station Service
 ## Summary（短简介，约 200 字符）
 
 ```
-Caretaker zombies pick up the finished products from auto-crafting stations that have no zombie assigned (furnace, distillation cube...), so the station keeps working instead of filling up. Playerless stations no longer run ahead of the caretaker serving them.
+Caretaker zombies pick up the finished products from auto-crafting stations that have no zombie assigned (furnace, distillation cube...), so the station keeps working instead of filling up. A caretaker can also take the craft's tech points with it. Playerless stations no longer run ahead of the caretaker serving them.
 ```
 
 ## Category / Tags
@@ -21,6 +21,7 @@ Caretaker zombies pick up the finished products from auto-crafting stations that
 - Category: `Gameplay`（或 `Buildings`，视 Nexus 上的分类而定）
 - Tags: `BepInEx`, `Zombies`, `Automation`, `Quality of Life`, `Crafting`
 - Requires: `BepInEx 5.4.x (x64)`
+- Optional: `GK2 Mod Framework`（模组菜单里的设置开关；没装也能用，设置写在 cfg 里）
 
 ## Description（正文，BBCode）
 
@@ -52,14 +53,23 @@ It gives workerless auto stations the vanilla worker treatment:
 [*][b]Stations with an attached zombie are ignored[/b] — those already work the vanilla way.
 [*][b]Conveyor workbenches are ignored[/b] — they run their own loop and push products to their output cell.
 [*][b]Stations that share storage with another object[/b] (workbench placed on top of a chest) are skipped: input and output already go through that shared storage.
-[*]No configuration file, no keybinds. The mod is active as soon as the plugin loads.
+[*][b]One setting[/b] (see below), no keybinds. The mod is active as soon as the plugin loads.
+[/list]
+
+[size=4][b]Tech points[/b][/size]
+An auto craft hands its tech points out when the product leaves the station — which, with no worker assigned, is when the caretaker carries it away. By default the caretaker [b]takes the points with it[/b], exactly like a crafter zombie does for its own crafts (a zombie's tech points are the currency for its talents). Turn the setting off and the points drop on the ground as red/green/blue orbs for the player to collect, which is what a workerless station does in vanilla.
+
+[list]
+[*]With [b]GK2 Mod Framework[/b] installed the toggle shows up on this mod's page in the Mods menu and applies immediately.
+[*]Without it, edit [b]BepInEx/config/com.gk2mod.autostationservice.cfg[/b] and restart the game. The mod works fine without the framework — only the UI is missing.
+[*]Menu texts follow the game language: a Chinese translation is included, and other languages can be added by dropping a translated file into [b]BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/[/b] (English is used when there is none). The texts are read at startup, so restart after changing the game language.
 [/list]
 
 [size=4][b]Installation[/b][/size]
 [list=1]
 [*]Install [b]BepInEx 5.4.x (x64)[/b] into the game folder if you have not already, and run the game once so that the plugins folder is created.
 [*]Drop [b]GK2AutoStationService.dll[/b] into [b]BepInEx/plugins/[/b].
-[*]Start the game. Mod manager (Vortex) install also works — the archive already contains the BepInEx/plugins folder structure.
+[*]Start the game. Mod manager (Vortex) install also works — the archive already contains the BepInEx/plugins folder structure (plus the optional Chinese translation for the framework's Mods menu).
 [/list]
 
 [size=4][b]How to use[/b][/size]
@@ -80,13 +90,15 @@ Everything from this mod is logged to [b]BepInEx/LogOutput.log[/b] with the pref
 [*][i]PickupOrder created <- item xN[/i] — a pickup order was created
 [*][i]craft finished, waiting for a caretaker to pick up the product[/i] — repeats every 60 s while the product sits in the station
 [*][i]the station cannot store its output[/i] — the station's storage is full, nothing was produced
+[*][i]caretaker ... took the tech points (red r, green g, blue b)[/i] — the caretaker collected the craft's tech points (setting on)
+[*][i]GK2 Mod Framework language: ...[/i] — the language the framework menu texts were resolved in
 [/list]
 
 [size=4][b]Uninstalling[/b][/size]
-Delete the DLL. Before you do, make sure no station is waiting for pickup — the log line [i]craft finished, waiting for a caretaker to pick up the product[/i] (printed every 60 s) is the tell. The pickup order this mod creates targets the station itself and is only resolvable while the mod is running, so a pending order in a save would make a caretaker throw errors at that station once the mod is removed. If you already uninstalled with an order pending, put the DLL back, load the save, wait until the caretaker has carried the product away, save, then remove it again.
+Delete the DLL. Before you do, make sure no station is waiting for pickup — the log line [i]craft finished, waiting for a caretaker to pick up the product[/i] (printed every 60 s) is the tell. The pickup order this mod creates targets the station itself and is only resolvable while the mod is running, so a pending order in a save would make a caretaker throw errors at that station once the mod is removed. If you already uninstalled with an order pending, put the DLL back, load the save, wait until the caretaker has carried the product away, save, then remove it again. Reinstalling 1.3.2 or newer also cleans up such leftover orders.
 
 [size=4][b]Compatibility[/b][/size]
-Built for Graveyard Keeper 2 (Steam) on BepInEx 5.4.23.4. It uses two Harmony prefixes — [b]ZombieSystemData.GetZombie[/b] and [b]ZombieWgoData.CaretakerTryMoveToZombie[/b] — and does not touch the crafting or caretaker state machines, so it can be used with other BepInEx mods. No other mod is required.
+Built for Graveyard Keeper 2 (Steam) on BepInEx 5.4.23.4. It uses three Harmony prefixes — [b]ZombieSystemData.GetZombie[/b], [b]ZombieWgoData.CaretakerTryMoveToZombie[/b] and [b]WgoData.DropStoredTechPoints[/b] — and does not touch the crafting or caretaker state machines, so it can be used with other BepInEx mods. No other mod is required; [b]GK2 Mod Framework[/b] is optional and only adds the settings page.
 
 [size=4][b]Source[/b][/size]
 Source code and build instructions: https://github.com/zhujingwei/GK2AutoStationService — built with netstandard2.1 against the game's assemblies.
@@ -95,6 +107,11 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 ## Changelog（Nexus 的 Changelog 字段）
 
 ```
+1.4.0
+- New setting (default on): the caretaker that carries a workerless auto station's product away also takes the craft's tech points with it, like a crafter zombie does for its own crafts. Turn it off to keep the vanilla behaviour — the tech points drop on the ground as orbs for the player.
+- The setting appears on this mod's page in the Mods menu of GK2 Mod Framework (optional, installed separately). Without the framework the setting lives in BepInEx/config/com.gk2mod.autostationservice.cfg.
+- The menu texts can be translated: Chinese is included, other languages are picked up from BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/.
+
 1.3.2
 - Fixed a NullReferenceException a caretaker could throw when placed in a zone that still held an order from an older version of the mod. Leftover orders are now removed on load, and a guard drops any unresolvable order instead of crashing the caretaker.
 - Leftover delivery orders (1.2.x) at serviced stations are removed.
@@ -122,12 +139,12 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 
 ## 上传前检查清单
 
-1. **主文件**：上传 `dist/GK2AutoStationService-1.3.2.zip`（内部结构 `BepInEx/plugins/GK2AutoStationService.dll`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.3.2.zip` 之外的任意名，但保持 `.zip`。
+1. **主文件**：上传 `dist/GK2AutoStationService-1.4.0.zip`（内部结构：`BepInEx/plugins/GK2AutoStationService.dll` + `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/zh.json`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.4.0.zip` 之外的任意名，但保持 `.zip`。
 2. **游戏页**：Graveyard Keeper 2（Steam app id 4358690，Nexus 上选游戏时不要选成一代 Graveyard Keeper）。
 3. **License / permissions**：Nexus 必填。建议 `MIT` 或 `All rights reserved + 允许转载/整合`；请自行决定，仓库里目前没有 LICENSE 文件。
 4. **图片**：Nexus 页面首图不是必填但强烈建议（1600×900 或相近 16:9）。需要的话可以让我生成一张标题图/截图版式。
-5. **Requirements 字段**：填 `BepInEx 5.4.x (x64)`（Nexus 上若已有 BepInEx 条目可直接链接；没有就写在 Description 里）。
+5. **Requirements 字段**：填 `BepInEx 5.4.x (x64)`（Nexus 上若已有 BepInEx 条目可直接链接；没有就写在 Description 里）。`GK2 Mod Framework` 是可选的，可在 Description 里提及。
 6. **Related mods**：如果之后也发布 Caretaker Priority，两边互相填 Related；本 mod 不依赖它，单独可用。
 7. **Source 字段**：填 `https://github.com/zhujingwei/GK2AutoStationService`（Description 里也写了）。
 8. **首次发布**：Nexus 新 mod 需要等待审核/首页曝光（普通 mod 立即发布，仅成人/敏感内容才审核）；上传后建议在 Description 里保留排查用的日志关键字，减少问答量。
-9. **GitHub 侧可选**：给 `v1.3.2` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.3.2.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。
+9. **GitHub 侧可选**：给 `v1.4.0` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.4.0.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。

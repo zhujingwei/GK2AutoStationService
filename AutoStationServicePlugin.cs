@@ -2,17 +2,34 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine;
 
 namespace GK2AutoStationService
 {
-    [BepInPlugin("com.gk2mod.autostationservice", "Auto Station Service", "1.3.2")]
+    [BepInPlugin(ModGuid, "Auto Station Service", ModVersion)]
+    // soft: with the framework installed it loads before us and we register our setting in its
+    // Mods menu; without it nothing changes and the setting stays in our own config file
+    [BepInDependency("ru.superman4eg.gk2.framework", BepInDependency.DependencyFlags.SoftDependency)]
     public class AutoStationServicePlugin : BaseUnityPlugin
     {
+        internal const string ModGuid = "com.gk2mod.autostationservice";
+        internal const string ModVersion = "1.4.0";
+        internal const string TechPointsSection = "General";
+        internal const string TechPointsKey = "CaretakerTakesTechPoints";
+        internal const bool TechPointsDefault = true;
+        // english text: also the fallback of the localization lookup in FrameworkIntegration.cs
+        internal const string TechPointsLabel = "Caretaker takes the tech points";
+        internal const string TechPointsDescription =
+            "A caretaker that carries the product away from a workerless auto station takes the tech points with it, like a crafter zombie does for its own crafts. Off: the tech points drop on the ground for the player to collect.";
+
         internal static ManualLogSource Log;
         internal static Harmony HarmonyInstance;
+
+        // bound by the framework bridge when GK2 Mod Framework is installed, otherwise in Awake
+        internal static ConfigEntry<bool> CaretakerTakesTechPoints;
 
         private void Awake()
         {
@@ -20,6 +37,12 @@ namespace GK2AutoStationService
 
             try
             {
+                if (!FrameworkBridge.TryRegister(this))
+                {
+                    CaretakerTakesTechPoints = Config.Bind(TechPointsSection, TechPointsKey, TechPointsDefault, TechPointsDescription);
+                    Log.LogInfo("[ASS] GK2 Mod Framework not found - the setting can be edited in BepInEx/config/com.gk2mod.autostationservice.cfg");
+                }
+
                 HarmonyInstance = new Harmony("com.gk2mod.autostationservice");
 
                 MethodInfo getZombie = AccessTools.Method(typeof(ZombieSystemData), "GetZombie", new Type[] { typeof(SGuid) });
@@ -43,11 +66,22 @@ namespace GK2AutoStationService
                     Log.LogInfo("[ASS] patched ZombieWgoData.CaretakerTryMoveToZombie");
                 }
 
+                MethodInfo dropStoredTechPoints = AccessTools.Method(typeof(WgoData), "DropStoredTechPoints");
+                if (dropStoredTechPoints == null)
+                {
+                    Log.LogError("[ASS] WgoData.DropStoredTechPoints not found - caretakers cannot take the tech points");
+                }
+                else
+                {
+                    HarmonyInstance.Patch(dropStoredTechPoints, prefix: new HarmonyMethod(typeof(CaretakerTechPoints), nameof(CaretakerTechPoints.DropStoredTechPointsPrefix)));
+                    Log.LogInfo("[ASS] patched WgoData.DropStoredTechPoints");
+                }
+
                 GameObject host = new GameObject("GK2AutoStationService");
                 UnityEngine.Object.DontDestroyOnLoad(host);
                 host.AddComponent<AutoStationServiceTick>();
 
-                Log.LogInfo("[ASS] Auto Station Service v1.3.2 ready");
+                Log.LogInfo($"[ASS] Auto Station Service v{ModVersion} ready (caretaker takes tech points: {CaretakerTakesTechPoints.Value})");
             }
             catch (Exception ex)
             {
@@ -1362,6 +1396,118 @@ namespace GK2AutoStationService
         }
     }
 
+    // an auto craft stores its tech points in the station's game res (WgoData.OnCraftEnd) and they
+    // are turned into orbs on the ground when the product is handed over. for a workerless station
+    // that hand-over is the caretaker's pickup, so the points can go to the caretaker instead -
+    // the zombie talent currency a crafter zombie earns for its own crafts
+    internal static class CaretakerTechPoints
+    {
+        private const string TECH_RED = "game_res_tech_red";
+        private const string TECH_GREEN = "game_res_tech_green";
+        private const string TECH_BLUE = "game_res_tech_blue";
+
+        public static bool DropStoredTechPointsPrefix(WgoData __instance)
+        {
+            try
+            {
+                ConfigEntry<bool> setting = AutoStationServicePlugin.CaretakerTakesTechPoints;
+                if (__instance == null || setting == null || !setting.Value)
+                {
+                    return true;
+                }
+
+                // a station with a worker earns the points the vanilla way (the worker takes them)
+                if (__instance.CraftableAttachedWorker != null)
+                {
+                    return true;
+                }
+
+                ZombieWgoData caretaker = FindCaretakerCarryingFrom(__instance);
+                if (caretaker == null)
+                {
+                    return true;
+                }
+
+                int red = __instance.GetGameResInt(TECH_RED);
+                int green = __instance.GetGameResInt(TECH_GREEN);
+                int blue = __instance.GetGameResInt(TECH_BLUE);
+                if (red + green + blue <= 0)
+                {
+                    return true;
+                }
+
+                caretaker.DoTechPointsReward(__instance, red, green, blue);
+                __instance.SetGameRes(TECH_RED, 0);
+                __instance.SetGameRes(TECH_GREEN, 0);
+                __instance.SetGameRes(TECH_BLUE, 0);
+
+                AutoStationServicePlugin.Log?.LogInfo($"[ASS] {__instance.id}: caretaker {caretaker.UniqueId.Guid} took the tech points (red {red}, green {green}, blue {blue})");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                AutoStationServicePlugin.Log?.LogError("[ASS] caretaker tech points: " + ex);
+            }
+
+            return true;
+        }
+
+        // the caretaker that is executing this station's pickup order right now - the only moment
+        // this method is reached with no worker on the station
+        private static ZombieWgoData FindCaretakerCarryingFrom(WgoData station)
+        {
+            MainGame game = MainGame.Instance;
+            if (game == null || game.GameSave == null)
+            {
+                return null;
+            }
+
+            WorldZoneData zone = station.WorldZoneData;
+            if (zone == null)
+            {
+                return null;
+            }
+
+            List<OrderBase> stationOrders = WorldZoneOrders.GetOrders(zone, station.UniqueId);
+            if (stationOrders == null || stationOrders.Count == 0)
+            {
+                return null;
+            }
+
+            List<SGuid> zombieIds = MainGame.ZombieSystemData?.zombieOnSceneWgoIds;
+            if (zombieIds == null)
+            {
+                return null;
+            }
+
+            for (int i = 0; i < zombieIds.Count; i++)
+            {
+                ZombieWgoData zombie = MainGame.ZombieSystemData.GetZombie(zombieIds[i]);
+                if (zombie == null || zombie.ZombieType != ZombieType.Caretaker)
+                {
+                    continue;
+                }
+
+                SGuid executing = CaretakerOrderGuard.GetExecutingOrder(zombie);
+                if (executing == null || executing.IsEmpty)
+                {
+                    continue;
+                }
+
+                for (int o = 0; o < stationOrders.Count; o++)
+                {
+                    OrderBase order = stationOrders[o];
+                    if (order != null && order.UniqueId.Guid == executing.Guid)
+                    {
+                        return zombie;
+                    }
+                }
+            }
+
+            return null;
+        }
+    }
+
     // vanilla walks an order's target with MainGame.ZombieSystemData.GetZombie(...).AttachedWgoData
     // and never checks for null: an order whose target is gone (left in a save by an older mod
     // version, or by a station that no longer exists) crashes the caretaker the moment it takes it.
@@ -1433,6 +1579,16 @@ namespace GK2AutoStationService
         {
             stopOrderExecutionMethod.Invoke(caretaker, null);
             getNewOrderMethod.Invoke(caretaker, null);
+        }
+
+        internal static SGuid GetExecutingOrder(ZombieWgoData caretaker)
+        {
+            if (caretaker == null || !Resolve())
+            {
+                return null;
+            }
+
+            return executingOrderField.GetValue(caretaker) as SGuid;
         }
 
         private static bool Resolve()

@@ -1,0 +1,6 @@
+{
+  "mod.name": "自动工作站服务",
+  "mod.description": "没有分配僵尸的自动工作站，完成的产物由搬运工僵尸取走。",
+  "settings.caretaker_tech_points.name": "搬运工取走科技点",
+  "settings.caretaker_tech_points.description": "搬运工把无人自动工作站的产物搬走时，会像工匠僵尸一样把科技点一并收下。关闭后，科技点会掉在地上，由玩家自己拾取。"
+}

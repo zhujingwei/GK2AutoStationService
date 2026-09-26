@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>GK2AutoStationService</AssemblyName>
     <Product>Auto Station Service Mod for Graveyard Keeper 2</Product>
-    <Version>1.3.2</Version>
+    <Version>1.4.0</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
@@ -31,6 +31,12 @@
     </Reference>
     <Reference Include="LazyBearTechnology">
       <HintPath>E:\SteamLibrary\steamapps\common\Graveyard Keeper 2\GraveyardKeeper2_Data\Managed\LazyBearTechnology.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- optional in-game settings UI: GK2 Mod Framework by SuperMan4eg, installed from Nexus mod 42.
+         compile-time only - the mod loads and runs without it (see FrameworkIntegration.cs) -->
+    <Reference Include="GK2.Framework">
+      <HintPath>E:\SteamLibrary\steamapps\common\Graveyard Keeper 2\BepInEx\plugins\GK2.Framework.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

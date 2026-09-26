@@ -5,9 +5,10 @@ Caretaker zombies pick up the finished products from **auto-crafting stations th
 搬运工僵尸会去**没插僵尸的自动工作站**（熔炉、蒸馏立方体等）取走成品，让工作站能继续生产，而不是被成品堵死。
 
 - Plugin GUID: `com.gk2mod.autostationservice`
-- Version: 1.3.2
+- Version: 1.4.0
 - Requires: BepInEx 5.4.x (x64) for Graveyard Keeper 2
-- Single file: `BepInEx/plugins/GK2AutoStationService.dll`
+- Optional: [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) — adds this mod's setting to its Mods menu
+- Single file: `BepInEx/plugins/GK2AutoStationService.dll` (plus a translation file under the framework's folder, see below)
 
 ---
 
@@ -35,13 +36,29 @@ This mod closes that gap with the vanilla worker model:
 - **Stations with an attached zombie are ignored** — those already work the vanilla way.
 - **Conveyor workbenches are ignored** — they run their own loop and push products to their output cell.
 - **Stations that share storage with another object** (workbench placed on top of a chest) are skipped: input and output already go through that shared storage.
-- No configuration file, no keybinds; the mod is active as soon as the plugin loads.
+- **One setting** (see below); no keybinds, the mod is active as soon as the plugin loads.
+
+### The tech points setting / 经验设置
+
+An auto craft stores its tech points in the station, and they are handed out when the product leaves the station. With a caretaker that means the zombie carrying the product away — and by default it takes the points with it, the same way a crafter zombie collects them for its own crafts (zombie tech points are the currency for that zombie's talents). Turn the setting off and the points drop on the ground as orbs for the player to collect instead, which is what a workerless station does in vanilla.
+
+自动合成的经验（tech points）会先存在工作站里，产物离开工作站时才结算。无人站的产物是搬运工搬走的，所以默认由**搬运工吃掉**这些经验——和插了僵尸工人时一样，经验进搬运工自己的口袋（僵尸天赋的货币）。把设置关掉则恢复原版行为：经验变成地上的红/绿/蓝球，玩家自己过去捡。
+
+- Setting: `Caretaker takes the tech points` (default **on**)
+- With [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) installed: open the Mods menu and use the toggle on this mod's page — it applies immediately.
+- Without it: edit `BepInEx/config/com.gk2mod.autostationservice.cfg` and restart the game. The mod works fine without the framework; only the UI is missing.
+- Language: the framework looks the mod's texts up in `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/<game language>.json`; the archive carries `zh.json` for Chinese, and any other language can be added by dropping in a translated file (English is used when there is none). The texts are read at startup, so change the game language first and then restart.
+- Log line when a caretaker takes them: `<station>: caretaker <guid> took the tech points (red r, green g, blue b)`.
+
+多语言：设置文本由 GK2 Mod Framework 按游戏语言从 `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/<语言>.json` 读取，压缩包里带了简体中文 `zh.json`；想加别的语言，复制一份翻译即可（没有对应文件时显示英文）。文本只在启动时读一次，**改了游戏语言要重启**才会显示新语言。
 
 ## Installation / 安装
 
 1. Install **BepInEx 5.4.x (x64)** into the game folder (Steam → Graveyard Keeper 2 → right click → Manage → Browse local files) if you have not already. Run the game once so that `BepInEx/plugins` is created.
 2. Drop `GK2AutoStationService.dll` into `BepInEx/plugins/`.
 3. Start the game.
+
+The archive also contains `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/zh.json` — unpacking it gives Chinese labels in the framework's Mods menu. Copying only the DLL works as well, the setting then shows in English.
 
 Vortex: install the archive as-is; it contains the `BepInEx/plugins/` folder structure, so Vortex deploys it to the right place.
 
@@ -66,9 +83,9 @@ Delete `BepInEx/plugins/GK2AutoStationService.dll`.
 
 Before you remove it, make sure **no station is waiting for pickup** — the log line `<station>: craft finished, waiting for a caretaker to pick up the product` (printed every 60 s) tells you. This mod hands the caretaker an order that targets the station, and that target is only resolvable while the mod is running.
 
-If you already uninstalled with an order pending: put the DLL back, load the save, wait until the caretaker has carried the product away (the log line above stops appearing), save, and then remove the mod. Coming back to 1.3.2 also works — it deletes such leftover orders itself and logs `removed stale PickupOrder ...`.
+If you already uninstalled with an order pending: put the DLL back, load the save, wait until the caretaker has carried the product away (the log line above stops appearing), save, and then remove the mod. Reinstalling 1.3.2 or newer also works — it deletes such leftover orders itself and logs `removed stale PickupOrder ...`.
 
-删 DLL 即可卸载。但**卸载前请确认没有站处于「等待取货」状态**（日志里每 60s 一条的 `craft finished, waiting for a caretaker to pick up the product` 就是这个状态的标志）：本 mod 生成的取货订单目标只有在 mod 运行时才能被解析。若已经卸载但订单还在，把 DLL 放回去读一次档、等搬运工把产品取走并存档，再移除；装回 1.3.2 也可以——它会自己删掉这类残留订单并在日志里写 `removed stale PickupOrder ...`。
+删 DLL 即可卸载。但**卸载前请确认没有站处于「等待取货」状态**（日志里每 60s 一条的 `craft finished, waiting for a caretaker to pick up the product` 就是这个状态的标志）：本 mod 生成的取货订单目标只有在 mod 运行时才能被解析。若已经卸载但订单还在，把 DLL 放回去读一次档、等搬运工把产品取走并存档，再移除；装回 1.3.2 或更新版本也可以——它会自己删掉这类残留订单并在日志里写 `removed stale PickupOrder ...`。
 
 ## Troubleshooting / 排查
 
@@ -88,6 +105,7 @@ Useful lines:
 | `<station>: shares storage with <id> [...] - products already go there, skipping` | The station forwards its storage, so it is skipped |
 | `<station>: the station cannot store its output - left at ...` | The station's storage is full; nothing was produced |
 | `<station>: revoked PickupOrder ...` | A stale order of this mod was cleaned up |
+| `<station>: caretaker <guid> took the tech points (red r, green g, blue b)` | The caretaker collected the craft's tech points instead of leaving them on the ground |
 | `<station>: removed stale PickupOrder ...` | A leftover pickup order (item no longer in the station) was deleted on load |
 | `<station>: removed leftover DeliveryOrder ...` | A 1.2.x delivery order was deleted (stations feed themselves) |
 | `caretaker <guid>: order <guid> points at <guid> ... - order dropped` | A caretaker found an order whose target no longer exists; it was dropped instead of crashing the caretaker |
@@ -97,11 +115,16 @@ If a station never produces anything, first check whether its zone appears in `c
 ## Compatibility / 兼容性
 
 - Built for Graveyard Keeper 2 (Steam, app id 4358690) with BepInEx 5.4.23.4, Unity 6000.3.x, Mono.
-- Uses two Harmony prefixes: `ZombieSystemData.GetZombie` (resolves a serviced station to its stand-in zombie) and `ZombieWgoData.CaretakerTryMoveToZombie` (drops an order whose target is gone instead of letting the caretaker crash on it). It does not patch crafting or the caretaker state machine.
+- Uses three Harmony prefixes: `ZombieSystemData.GetZombie` (resolves a serviced station to its stand-in zombie), `ZombieWgoData.CaretakerTryMoveToZombie` (drops an order whose target is gone instead of letting the caretaker crash on it) and `WgoData.DropStoredTechPoints` (hands the station's stored tech points to the caretaker that is carrying the product away). It does not patch crafting or the caretaker state machine.
+- [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) (Nexus mod 42) is optional: when installed, the mod registers a page with its setting in the framework's Mods menu. The framework is only a soft dependency — the mod loads and works without it, with the setting in its own config file.
 - Load order is irrelevant; no other mod is required.
 - Verified alongside BepInEx 5 based mods (framework mods, inventory mods, time-of-day mods).
 
 ## Changelog / 更新日志
+
+### 1.4.0
+- New setting `Caretaker takes the tech points` (default on): the tech points an auto craft stores in the station go to the caretaker that carries the product away, instead of dropping on the ground for the player to collect. Turn it off for the vanilla ground drops.
+- Optional [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) integration: the setting shows up on this mod's page in the framework's Mods menu. Without the framework the setting stays in `BepInEx/config/com.gk2mod.autostationservice.cfg`.
 
 ### 1.3.2
 - Fixed a `NullReferenceException` a caretaker could throw when it was placed in a zone that still held an order from an older version of the mod (an order resolving to a target that no longer exists). The mod now removes such leftover orders on load, and a caretaker-side guard drops any unresolvable order instead of crashing.
@@ -129,4 +152,4 @@ If a station never produces anything, first check whether its zone appears in `c
 
 https://github.com/zhujingwei/GK2AutoStationService
 
-Build with `dotnet build -c Release` (netstandard2.1) against the game's `Assembly-CSharp.dll` / `BepInEx.dll` references — the `<HintPath>` entries in the `.csproj` point to a local Steam install, adjust them for your own. `tools/checkdll.ps1` verifies the built DLL's strings; `tools/makezip.ps1` packs the release archive.
+Build with `dotnet build -c Release` (netstandard2.1) against the game's `Assembly-CSharp.dll` / `BepInEx.dll` references — the `<HintPath>` entries in the `.csproj` point to a local Steam install, adjust them for your own. The build also references `BepInEx/plugins/GK2.Framework.dll` (GK2 Mod Framework) for the optional settings integration; install the framework or remove that one `<Reference>` to build without it. `tools/checkdll.ps1` verifies the built DLL's strings; `tools/makezip.ps1` packs the release archive.

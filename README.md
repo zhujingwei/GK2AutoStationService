@@ -5,7 +5,7 @@ Caretaker zombies pick up the finished products from **auto-crafting stations th
 搬运工僵尸会去**没插僵尸的自动工作站**（熔炉、蒸馏立方体等）取走成品，让工作站能继续生产，而不是被成品堵死。
 
 - Plugin GUID: `com.gk2mod.autostationservice`
-- Version: 1.3.1
+- Version: 1.3.2
 - Requires: BepInEx 5.4.x (x64) for Graveyard Keeper 2
 - Single file: `BepInEx/plugins/GK2AutoStationService.dll`
 
@@ -64,11 +64,11 @@ Notes / 注意：
 
 Delete `BepInEx/plugins/GK2AutoStationService.dll`.
 
-Before you remove it, make sure **no station is waiting for pickup** — the log line `<station>: craft finished, waiting for a caretaker to pick up the product` (printed every 60 s) tells you. This mod hands the caretaker an order that targets the station, and that target is only resolvable while the mod is running; a pickup order still pending in a save would make a caretaker throw errors at that station once the mod is gone.
+Before you remove it, make sure **no station is waiting for pickup** — the log line `<station>: craft finished, waiting for a caretaker to pick up the product` (printed every 60 s) tells you. This mod hands the caretaker an order that targets the station, and that target is only resolvable while the mod is running.
 
-If you already uninstalled with an order pending: put the DLL back, load the save, wait until the caretaker has carried the product away (the log line above stops appearing), save, and then remove the mod.
+If you already uninstalled with an order pending: put the DLL back, load the save, wait until the caretaker has carried the product away (the log line above stops appearing), save, and then remove the mod. Coming back to 1.3.2 also works — it deletes such leftover orders itself and logs `removed stale PickupOrder ...`.
 
-删 DLL 即可卸载。但**卸载前请确认没有站处于「等待取货」状态**（日志里每 60s 一条的 `craft finished, waiting for a caretaker to pick up the product` 就是这个状态的标志）：本 mod 生成的取货订单目标只有在 mod 运行时才能被解析，残留订单会让搬运工在没有 mod 的情况下报错。若已经卸载但订单还在，把 DLL 放回去读一次档、等搬运工把产品取走并存档，再移除。
+删 DLL 即可卸载。但**卸载前请确认没有站处于「等待取货」状态**（日志里每 60s 一条的 `craft finished, waiting for a caretaker to pick up the product` 就是这个状态的标志）：本 mod 生成的取货订单目标只有在 mod 运行时才能被解析。若已经卸载但订单还在，把 DLL 放回去读一次档、等搬运工把产品取走并存档，再移除；装回 1.3.2 也可以——它会自己删掉这类残留订单并在日志里写 `removed stale PickupOrder ...`。
 
 ## Troubleshooting / 排查
 
@@ -87,18 +87,26 @@ Useful lines:
 | `<station>: PickupOrder created <- <item> xN` | A pickup order was created for the caretaker |
 | `<station>: shares storage with <id> [...] - products already go there, skipping` | The station forwards its storage, so it is skipped |
 | `<station>: the station cannot store its output - left at ...` | The station's storage is full; nothing was produced |
-| `<station>: revoked PickupOrder ...` | A stale order was cleaned up |
+| `<station>: revoked PickupOrder ...` | A stale order of this mod was cleaned up |
+| `<station>: removed stale PickupOrder ...` | A leftover pickup order (item no longer in the station) was deleted on load |
+| `<station>: removed leftover DeliveryOrder ...` | A 1.2.x delivery order was deleted (stations feed themselves) |
+| `caretaker <guid>: order <guid> points at <guid> ... - order dropped` | A caretaker found an order whose target no longer exists; it was dropped instead of crashing the caretaker |
 
 If a station never produces anything, first check whether its zone appears in `caretaker zone(s):`.
 
 ## Compatibility / 兼容性
 
 - Built for Graveyard Keeper 2 (Steam, app id 4358690) with BepInEx 5.4.23.4, Unity 6000.3.x, Mono.
-- Uses Harmony patches on `ZombieSystemData.GetZombie` (prefix) only; it does not patch crafting or the caretaker state machine.
+- Uses two Harmony prefixes: `ZombieSystemData.GetZombie` (resolves a serviced station to its stand-in zombie) and `ZombieWgoData.CaretakerTryMoveToZombie` (drops an order whose target is gone instead of letting the caretaker crash on it). It does not patch crafting or the caretaker state machine.
 - Load order is irrelevant; no other mod is required.
 - Verified alongside BepInEx 5 based mods (framework mods, inventory mods, time-of-day mods).
 
 ## Changelog / 更新日志
+
+### 1.3.2
+- Fixed a `NullReferenceException` a caretaker could throw when it was placed in a zone that still held an order from an older version of the mod (an order resolving to a target that no longer exists). The mod now removes such leftover orders on load, and a caretaker-side guard drops any unresolvable order instead of crashing.
+- Leftover delivery orders (1.2.x) at serviced stations are removed: the stations feed themselves, so the caretaker no longer makes pointless trips.
+- No more `NullReferenceException` spam at the main menu before a save is loaded.
 
 ### 1.3.1
 - Removed material delivery orders. Workerless stations feed themselves from the zone storages, so the caretaker only carries products out. This also removes the risk of a delivery filling the station's storage and making the next product disappear.

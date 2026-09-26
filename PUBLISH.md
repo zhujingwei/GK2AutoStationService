@@ -1,4 +1,4 @@
-# Nexus 发布文案（Auto Station Service 1.3.1）
+# Nexus 发布文案（Auto Station Service 1.3.2）
 
 下面是可以直接复制粘贴到 Nexus 上传页的内容。上传步骤和检查清单在最下面。
 
@@ -86,7 +86,7 @@ Everything from this mod is logged to [b]BepInEx/LogOutput.log[/b] with the pref
 Delete the DLL. Before you do, make sure no station is waiting for pickup — the log line [i]craft finished, waiting for a caretaker to pick up the product[/i] (printed every 60 s) is the tell. The pickup order this mod creates targets the station itself and is only resolvable while the mod is running, so a pending order in a save would make a caretaker throw errors at that station once the mod is removed. If you already uninstalled with an order pending, put the DLL back, load the save, wait until the caretaker has carried the product away, save, then remove it again.
 
 [size=4][b]Compatibility[/b][/size]
-Built for Graveyard Keeper 2 (Steam) on BepInEx 5.4.23.4. It patches only [b]ZombieSystemData.GetZombie[/b] and does not touch the crafting or caretaker state machines, so it can be used with other BepInEx mods. No other mod is required.
+Built for Graveyard Keeper 2 (Steam) on BepInEx 5.4.23.4. It uses two Harmony prefixes — [b]ZombieSystemData.GetZombie[/b] and [b]ZombieWgoData.CaretakerTryMoveToZombie[/b] — and does not touch the crafting or caretaker state machines, so it can be used with other BepInEx mods. No other mod is required.
 
 [size=4][b]Source[/b][/size]
 Source code and build instructions: https://github.com/zhujingwei/GK2AutoStationService — built with netstandard2.1 against the game's assemblies.
@@ -95,6 +95,11 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 ## Changelog（Nexus 的 Changelog 字段）
 
 ```
+1.3.2
+- Fixed a NullReferenceException a caretaker could throw when placed in a zone that still held an order from an older version of the mod. Leftover orders are now removed on load, and a guard drops any unresolvable order instead of crashing the caretaker.
+- Leftover delivery orders (1.2.x) at serviced stations are removed.
+- No more NullReferenceException spam at the main menu before a save is loaded.
+
 1.3.1
 - Removed material delivery orders. Workerless stations feed themselves from the zone storages, so the caretaker only carries products out. Also removes the risk of a delivery filling the station's storage and the next product disappearing.
 
@@ -117,7 +122,7 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 
 ## 上传前检查清单
 
-1. **主文件**：上传 `dist/GK2AutoStationService-1.3.1.zip`（内部结构 `BepInEx/plugins/GK2AutoStationService.dll`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.3.1.zip` 之外的任意名，但保持 `.zip`。
+1. **主文件**：上传 `dist/GK2AutoStationService-1.3.2.zip`（内部结构 `BepInEx/plugins/GK2AutoStationService.dll`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.3.2.zip` 之外的任意名，但保持 `.zip`。
 2. **游戏页**：Graveyard Keeper 2（Steam app id 4358690，Nexus 上选游戏时不要选成一代 Graveyard Keeper）。
 3. **License / permissions**：Nexus 必填。建议 `MIT` 或 `All rights reserved + 允许转载/整合`；请自行决定，仓库里目前没有 LICENSE 文件。
 4. **图片**：Nexus 页面首图不是必填但强烈建议（1600×900 或相近 16:9）。需要的话可以让我生成一张标题图/截图版式。
@@ -125,4 +130,4 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 6. **Related mods**：如果之后也发布 Caretaker Priority，两边互相填 Related；本 mod 不依赖它，单独可用。
 7. **Source 字段**：填 `https://github.com/zhujingwei/GK2AutoStationService`（Description 里也写了）。
 8. **首次发布**：Nexus 新 mod 需要等待审核/首页曝光（普通 mod 立即发布，仅成人/敏感内容才审核）；上传后建议在 Description 里保留排查用的日志关键字，减少问答量。
-9. **GitHub 侧可选**：给 `v1.3.1` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.3.1.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。
+9. **GitHub 侧可选**：给 `v1.3.2` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.3.2.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。

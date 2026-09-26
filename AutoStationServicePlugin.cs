@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace GK2AutoStationService
 {
-    [BepInPlugin("com.gk2mod.autostationservice", "Auto Station Service", "1.3.1")]
+    [BepInPlugin("com.gk2mod.autostationservice", "Auto Station Service", "1.3.2")]
     public class AutoStationServicePlugin : BaseUnityPlugin
     {
         internal static ManualLogSource Log;
@@ -32,11 +32,22 @@ namespace GK2AutoStationService
                 HarmonyInstance.Patch(getZombie, prefix: new HarmonyMethod(typeof(AutoStationServicePlugin), nameof(GetZombiePrefix)));
                 Log.LogInfo("[ASS] patched ZombieSystemData.GetZombie");
 
+                MethodInfo moveToZombie = AccessTools.Method(typeof(ZombieWgoData), "CaretakerTryMoveToZombie");
+                if (moveToZombie == null)
+                {
+                    Log.LogError("[ASS] ZombieWgoData.CaretakerTryMoveToZombie not found - the caretaker order guard is off");
+                }
+                else
+                {
+                    HarmonyInstance.Patch(moveToZombie, prefix: new HarmonyMethod(typeof(CaretakerOrderGuard), nameof(CaretakerOrderGuard.CaretakerTryMoveToZombiePrefix)));
+                    Log.LogInfo("[ASS] patched ZombieWgoData.CaretakerTryMoveToZombie");
+                }
+
                 GameObject host = new GameObject("GK2AutoStationService");
                 UnityEngine.Object.DontDestroyOnLoad(host);
                 host.AddComponent<AutoStationServiceTick>();
 
-                Log.LogInfo("[ASS] Auto Station Service v1.3.1 ready");
+                Log.LogInfo("[ASS] Auto Station Service v1.3.2 ready");
             }
             catch (Exception ex)
             {
@@ -254,6 +265,14 @@ namespace GK2AutoStationService
         {
             caretakerZones.Clear();
 
+            // ZombieSystemData is a static property that dereferences MainGame.Instance, so it
+            // throws at the main menu - before a save is loaded there is no zombie list to read
+            MainGame game = MainGame.Instance;
+            if (game == null || game.GameSave == null)
+            {
+                return;
+            }
+
             List<SGuid> zombieIds = MainGame.ZombieSystemData?.zombieOnSceneWgoIds;
             if (zombieIds == null)
             {
@@ -343,6 +362,28 @@ namespace GK2AutoStationService
 
             DumpDiagnosticsOnce(station, cc, inv);
 
+            // orders outlive a reload while the proxy table does not, and a caretaker may act on
+            // one before the next scan - so the proxy and the order list are repaired for every
+            // serviced station, even in a zone without a caretaker
+            List<OrderBase> existing = WorldZoneOrders.GetOrders(zone, station.UniqueId);
+            if (existing == null)
+            {
+                return;
+            }
+
+            if (existing.Count > 0)
+            {
+                StationProxyRegistry.EnsureProxy(station);
+                if (RemoveStaleOrders(zone, station, inv, existing))
+                {
+                    existing = WorldZoneOrders.GetOrders(zone, station.UniqueId);
+                    if (existing == null)
+                    {
+                        return;
+                    }
+                }
+            }
+
             // only a caretaker standing in this very zone can take an order from it, so a
             // station nobody services must be left untouched instead of running ahead
             if (!caretakerZones.Contains(zone.id))
@@ -369,19 +410,6 @@ namespace GK2AutoStationService
 
                 RevokeTrackedOrders(zone, station, "station shares its storage with " + forwardingTarget.id);
                 return;
-            }
-
-            List<OrderBase> existing = WorldZoneOrders.GetOrders(zone, station.UniqueId);
-            if (existing == null)
-            {
-                return;
-            }
-
-            if (existing.Count > 0)
-            {
-                // orders outlive a reload while the proxy table does not, and a caretaker
-                // resolving one of them without its proxy would dereference a null zombie
-                StationProxyRegistry.EnsureProxy(station);
             }
 
             if (ValidateTrackedOrders(zone, existing, station, inv))
@@ -423,13 +451,6 @@ namespace GK2AutoStationService
                     && inv.Data.HasItemQuantityInInventory(order.Item.id, order.Item.Count))
                 {
                     pendingPickup = true;
-                }
-                else if (order.ExecutorUniqueId.IsEmpty && !ServiceOrderRegistry.IsTracked(order))
-                {
-                    // an order left over from an earlier session (or one whose craft already
-                    // consumed the item) would otherwise block every future pickup order
-                    zone.RemoveOrder(order.UniqueId);
-                    AutoStationServicePlugin.Log?.LogInfo($"[ASS] {station.id}: removed stale PickupOrder {ItemText(order.Item)} (not in the station)");
                 }
             }
 
@@ -513,6 +534,43 @@ namespace GK2AutoStationService
 
             pickupWaitLogTime[station.UniqueId.Guid] = now;
             AutoStationServicePlugin.Log?.LogInfo($"[ASS] {station.id}: craft finished, waiting for a caretaker to pick up the product (queue={cc.CraftElementsQueue?.Count ?? 0}, craft inventory ({FillText(inv)}): {NamesText(inv)})");
+        }
+
+        // an untaken order this mod did not create is a leftover: either a material delivery from
+        // an older version of the mod (the station feeds itself from the zone storages now) or a
+        // pickup of an item the station no longer holds. both make a caretaker walk to the station
+        // for nothing, and the delivery would even push materials back in
+        private static bool RemoveStaleOrders(WorldZoneData zone, WgoData station, Inventory inv, List<OrderBase> zoneOrders)
+        {
+            bool removedAny = false;
+
+            for (int i = 0; i < zoneOrders.Count; i++)
+            {
+                OrderBase order = zoneOrders[i];
+                if (order == null || !order.ExecutorUniqueId.IsEmpty || ServiceOrderRegistry.IsTracked(order))
+                {
+                    continue;
+                }
+
+                if (order is DeliveryOrder)
+                {
+                    zone.RemoveOrder(order.UniqueId);
+                    removedAny = true;
+                    AutoStationServicePlugin.Log?.LogInfo($"[ASS] {station.id}: removed leftover DeliveryOrder {ItemText(order.Item)} (the station feeds itself from the zone storages)");
+                    continue;
+                }
+
+                if (order is PickupOrder
+                    && (order.Item == null || string.IsNullOrEmpty(order.Item.id) || order.Item.Count <= 0
+                        || !inv.Data.HasItemQuantityInInventory(order.Item.id, order.Item.Count)))
+                {
+                    zone.RemoveOrder(order.UniqueId);
+                    removedAny = true;
+                    AutoStationServicePlugin.Log?.LogInfo($"[ASS] {station.id}: removed stale PickupOrder {ItemText(order.Item)} (the station no longer holds it)");
+                }
+            }
+
+            return removedAny;
         }
 
         // returns true when at least one order was revoked
@@ -1240,6 +1298,40 @@ namespace GK2AutoStationService
             }
         }
 
+        // vanilla reaches a caretaker order's target through ZombieSystemData.GetZombie, which only
+        // knows real zombies - a serviced station resolves only while its proxy exists. orders are
+        // taken the moment a caretaker appears, so the proxy is created on demand here
+        internal static bool EnsureProxyForTarget(SGuid targetGuid)
+        {
+            if (targetGuid == null || targetGuid.IsEmpty)
+            {
+                return false;
+            }
+
+            WgoData target;
+            try
+            {
+                target = MainGame.WorldData.GetWgoData(targetGuid);
+            }
+            catch (Exception ex)
+            {
+                AutoStationServicePlugin.Log?.LogError("[ASS] EnsureProxyForTarget: " + ex);
+                return false;
+            }
+
+            if (target == null || target.Definition == null || !target.Definition.isAutoCrafter)
+            {
+                return false;
+            }
+
+            if (target.CraftableType == CraftableType.ConveyorWorkbench || target.CraftableAttachedWorker != null)
+            {
+                return false;
+            }
+
+            return EnsureProxy(target);
+        }
+
         private static void Bind(ZombieWgoData proxy, WgoData station)
         {
             attachedWgoDataField.SetValue(proxy, station);
@@ -1263,6 +1355,100 @@ namespace GK2AutoStationService
             if (attachedWgoDataField == null || attachedWgoDataUniqueIdField == null)
             {
                 AutoStationServicePlugin.Log?.LogError("[ASS] cannot resolve ZombieWgoData attach fields");
+                return false;
+            }
+
+            return true;
+        }
+    }
+
+    // vanilla walks an order's target with MainGame.ZombieSystemData.GetZombie(...).AttachedWgoData
+    // and never checks for null: an order whose target is gone (left in a save by an older mod
+    // version, or by a station that no longer exists) crashes the caretaker the moment it takes it.
+    // serviced stations get their proxy on demand here, everything else is dropped so the caretaker
+    // looks for other work instead of throwing
+    internal static class CaretakerOrderGuard
+    {
+        private static FieldInfo executingOrderField;
+        private static MethodInfo stopOrderExecutionMethod;
+        private static MethodInfo getNewOrderMethod;
+
+        public static bool CaretakerTryMoveToZombiePrefix(ZombieWgoData __instance)
+        {
+            try
+            {
+                if (__instance == null || !Resolve())
+                {
+                    return true;
+                }
+
+                SGuid orderId = (SGuid)executingOrderField.GetValue(__instance);
+                WorldZoneData zone = __instance.WorldZoneData;
+                if (orderId == null || orderId.IsEmpty || zone == null)
+                {
+                    return true;
+                }
+
+                OrderBase order = zone.FindOrder(orderId);
+                if (order == null)
+                {
+                    AutoStationServicePlugin.Log?.LogInfo($"[ASS] caretaker {__instance.UniqueId.Guid}: order {orderId.Guid} is not in zone {zone.id} anymore - looking for another one");
+                    Replan(__instance);
+                    return false;
+                }
+
+                if (MainGame.ZombieSystemData.GetZombie(order.TargetWgoUniqueId) != null)
+                {
+                    return true;
+                }
+
+                if (StationProxyRegistry.EnsureProxyForTarget(order.TargetWgoUniqueId)
+                    && MainGame.ZombieSystemData.GetZombie(order.TargetWgoUniqueId) != null)
+                {
+                    return true;
+                }
+
+                AutoStationServicePlugin.Log?.LogInfo($"[ASS] caretaker {__instance.UniqueId.Guid}: order {order.UniqueId.Guid} points at {order.TargetWgoUniqueId.Guid}, which is neither a zombie nor a station this mod serves - order dropped");
+                zone.RemoveOrder(order.UniqueId);
+
+                // removing the order notifies the caretaker, which stops it and looks for new work;
+                // states that do not react to that are replanned here
+                SGuid stillExecuting = (SGuid)executingOrderField.GetValue(__instance);
+                if (stillExecuting != null && !stillExecuting.IsEmpty && stillExecuting.Guid == orderId.Guid)
+                {
+                    Replan(__instance);
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                AutoStationServicePlugin.Log?.LogError("[ASS] caretaker order guard: " + ex);
+            }
+
+            return true;
+        }
+
+        private static void Replan(ZombieWgoData caretaker)
+        {
+            stopOrderExecutionMethod.Invoke(caretaker, null);
+            getNewOrderMethod.Invoke(caretaker, null);
+        }
+
+        private static bool Resolve()
+        {
+            if (executingOrderField != null && stopOrderExecutionMethod != null && getNewOrderMethod != null)
+            {
+                return true;
+            }
+
+            executingOrderField = AccessTools.Field(typeof(ZombieWgoData), "caretakerExecutingOrder");
+            stopOrderExecutionMethod = AccessTools.Method(typeof(ZombieWgoData), "CaretakerTryStopOrderExecution");
+            getNewOrderMethod = AccessTools.Method(typeof(ZombieWgoData), "CaretakerTryGetNewOrderOrMoveToStation");
+
+            if (executingOrderField == null || stopOrderExecutionMethod == null || getNewOrderMethod == null)
+            {
+                AutoStationServicePlugin.Log?.LogError("[ASS] cannot resolve the caretaker order fields - the guard is off");
                 return false;
             }
 

@@ -58,7 +58,7 @@ It gives workerless auto stations the vanilla worker treatment:
 [size=4][b]Installation[/b][/size]
 [list=1]
 [*]Install [b]BepInEx 5.4.x (x64)[/b] into the game folder if you have not already, and run the game once so that the plugins folder is created.
-[*]Drop the [b]GK2AutoStationService[/b] folder (DLL inside) into [b]BepInEx/plugins/[/b].
+[*]Drop [b]GK2AutoStationService.dll[/b] into [b]BepInEx/plugins/[/b].
 [*]Start the game. Mod manager (Vortex) install also works — the archive already contains the BepInEx/plugins folder structure.
 [/list]
 
@@ -122,7 +122,7 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 
 ## 上传前检查清单
 
-1. **主文件**：上传 `dist/GK2AutoStationService-1.3.2.zip`（内部结构 `BepInEx/plugins/GK2AutoStationService/GK2AutoStationService.dll`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.3.2.zip` 之外的任意名，但保持 `.zip`。
+1. **主文件**：上传 `dist/GK2AutoStationService-1.3.2.zip`（内部结构 `BepInEx/plugins/GK2AutoStationService.dll`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.3.2.zip` 之外的任意名，但保持 `.zip`。
 2. **游戏页**：Graveyard Keeper 2（Steam app id 4358690，Nexus 上选游戏时不要选成一代 Graveyard Keeper）。
 3. **License / permissions**：Nexus 必填。建议 `MIT` 或 `All rights reserved + 允许转载/整合`；请自行决定，仓库里目前没有 LICENSE 文件。
 4. **图片**：Nexus 页面首图不是必填但强烈建议（1600×900 或相近 16:9）。需要的话可以让我生成一张标题图/截图版式。

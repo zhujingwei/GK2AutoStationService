@@ -7,7 +7,7 @@ Caretaker zombies pick up the finished products from **auto-crafting stations th
 - Plugin GUID: `com.gk2mod.autostationservice`
 - Version: 1.3.2
 - Requires: BepInEx 5.4.x (x64) for Graveyard Keeper 2
-- Single file: `BepInEx/plugins/GK2AutoStationService/GK2AutoStationService.dll`
+- Single file: `BepInEx/plugins/GK2AutoStationService.dll`
 
 ---
 
@@ -40,12 +40,12 @@ This mod closes that gap with the vanilla worker model:
 ## Installation / 安装
 
 1. Install **BepInEx 5.4.x (x64)** into the game folder (Steam → Graveyard Keeper 2 → right click → Manage → Browse local files) if you have not already. Run the game once so that `BepInEx/plugins` is created.
-2. Drop the `GK2AutoStationService` folder (with the DLL inside) into `BepInEx/plugins/`.
+2. Drop `GK2AutoStationService.dll` into `BepInEx/plugins/`.
 3. Start the game.
 
-Vortex: install the archive as-is; it contains the `BepInEx/plugins/GK2AutoStationService/` folder structure, so Vortex deploys it to the right place.
+Vortex: install the archive as-is; it contains the `BepInEx/plugins/` folder structure, so Vortex deploys it to the right place.
 
-中文：装好 BepInEx 5.4 x64，把 `GK2AutoStationService` 文件夹（里面是 DLL）放进 `BepInEx/plugins/` 即可；Vortex 可直接安装压缩包。
+中文：装好 BepInEx 5.4 x64，把 `GK2AutoStationService.dll` 放进 `BepInEx/plugins/` 即可；Vortex 可直接安装压缩包。
 
 ## How to use / 怎么用
 
@@ -62,13 +62,13 @@ Notes / 注意：
 
 ## Uninstalling / 卸载
 
-Delete the `BepInEx/plugins/GK2AutoStationService` folder.
+Delete `BepInEx/plugins/GK2AutoStationService.dll`.
 
 Before you remove it, make sure **no station is waiting for pickup** — the log line `<station>: craft finished, waiting for a caretaker to pick up the product` (printed every 60 s) tells you. This mod hands the caretaker an order that targets the station, and that target is only resolvable while the mod is running.
 
 If you already uninstalled with an order pending: put the DLL back, load the save, wait until the caretaker has carried the product away (the log line above stops appearing), save, and then remove the mod. Coming back to 1.3.2 also works — it deletes such leftover orders itself and logs `removed stale PickupOrder ...`.
 
-删掉 `BepInEx/plugins/GK2AutoStationService` 文件夹即可卸载。但**卸载前请确认没有站处于「等待取货」状态**（日志里每 60s 一条的 `craft finished, waiting for a caretaker to pick up the product` 就是这个状态的标志）：本 mod 生成的取货订单目标只有在 mod 运行时才能被解析。若已经卸载但订单还在，把 DLL 放回去读一次档、等搬运工把产品取走并存档，再移除；装回 1.3.2 也可以——它会自己删掉这类残留订单并在日志里写 `removed stale PickupOrder ...`。
+删 DLL 即可卸载。但**卸载前请确认没有站处于「等待取货」状态**（日志里每 60s 一条的 `craft finished, waiting for a caretaker to pick up the product` 就是这个状态的标志）：本 mod 生成的取货订单目标只有在 mod 运行时才能被解析。若已经卸载但订单还在，把 DLL 放回去读一次档、等搬运工把产品取走并存档，再移除；装回 1.3.2 也可以——它会自己删掉这类残留订单并在日志里写 `removed stale PickupOrder ...`。
 
 ## Troubleshooting / 排查
 

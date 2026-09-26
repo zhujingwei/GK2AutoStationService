@@ -89,7 +89,7 @@ Delete the DLL. Before you do, make sure no station is waiting for pickup — th
 Built for Graveyard Keeper 2 (Steam) on BepInEx 5.4.23.4. It patches only [b]ZombieSystemData.GetZombie[/b] and does not touch the crafting or caretaker state machines, so it can be used with other BepInEx mods. No other mod is required.
 
 [size=4][b]Source[/b][/size]
-Built with netstandard2.1 against the game's assemblies. Source code is available — see the link on this page.
+Source code and build instructions: https://github.com/zhujingwei/GK2AutoStationService — built with netstandard2.1 against the game's assemblies.
 ```
 
 ## Changelog（Nexus 的 Changelog 字段）
@@ -123,4 +123,6 @@ Built with netstandard2.1 against the game's assemblies. Source code is availabl
 4. **图片**：Nexus 页面首图不是必填但强烈建议（1600×900 或相近 16:9）。需要的话可以让我生成一张标题图/截图版式。
 5. **Requirements 字段**：填 `BepInEx 5.4.x (x64)`（Nexus 上若已有 BepInEx 条目可直接链接；没有就写在 Description 里）。
 6. **Related mods**：如果之后也发布 Caretaker Priority，两边互相填 Related；本 mod 不依赖它，单独可用。
-7. **首次发布**：Nexus 新 mod 需要等待审核/首页曝光（普通 mod 立即发布，仅成人/敏感内容才审核）；上传后建议在 Description 里保留排查用的日志关键字，减少问答量。
+7. **Source 字段**：填 `https://github.com/zhujingwei/GK2AutoStationService`（Description 里也写了）。
+8. **首次发布**：Nexus 新 mod 需要等待审核/首页曝光（普通 mod 立即发布，仅成人/敏感内容才审核）；上传后建议在 Description 里保留排查用的日志关键字，减少问答量。
+9. **GitHub 侧可选**：给 `v1.3.1` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.3.1.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。

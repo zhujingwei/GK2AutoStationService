@@ -119,4 +119,6 @@ If a station never produces anything, first check whether its zone appears in `c
 
 ## Source / 源码
 
-Source code: `AutoStationServicePlugin.cs` (this repository). Build with `dotnet build -c Release` (netstandard2.1) against the game's `Assembly-CSharp.dll` / `BepInEx.dll` references — the `<HintPath>` entries in the `.csproj` point to a local Steam install, adjust them for your own. `tools/checkdll.ps1` in the repo verifies the built DLL's strings; `tools/makezip.ps1` packs the release archive.
+https://github.com/zhujingwei/GK2AutoStationService
+
+Build with `dotnet build -c Release` (netstandard2.1) against the game's `Assembly-CSharp.dll` / `BepInEx.dll` references — the `<HintPath>` entries in the `.csproj` point to a local Steam install, adjust them for your own. `tools/checkdll.ps1` verifies the built DLL's strings; `tools/makezip.ps1` packs the release archive.

@@ -27,7 +27,7 @@ namespace GK2AutoStationService
             try
             {
                 Register(plugin);
-                AutoStationServicePlugin.Log?.LogInfo("[ASS] registered with GK2 Mod Framework - the setting shows up in the Mods menu");
+                AutoStationServicePlugin.LogInfo("[ASS] registered with GK2 Mod Framework - the setting shows up in the Mods menu");
                 return true;
             }
             catch (Exception ex)
@@ -72,6 +72,8 @@ namespace GK2AutoStationService
         private const string LocModDescription = "mod.description";
         private const string LocSettingName = "settings.caretaker_tech_points.name";
         private const string LocSettingDescription = "settings.caretaker_tech_points.description";
+        private const string LocLogName = "settings.detailed_log.name";
+        private const string LocLogDescription = "settings.detailed_log.description";
 
         private const string ModName = "Auto Station Service";
         private const string ModDescription = "Caretaker zombies pick up the finished products from auto-crafting stations that have no zombie assigned.";
@@ -107,7 +109,7 @@ namespace GK2AutoStationService
         {
             // the labels are captured here and the framework never re-resolves them, so a language
             // change in the game options needs a restart before the menu shows the new texts
-            AutoStationServicePlugin.Log?.LogInfo($"[ASS] GK2 Mod Framework language: {GK2.Framework.FrameworkLocalization.CurrentLanguage}");
+            AutoStationServicePlugin.LogInfo($"[ASS] GK2 Mod Framework language: {GK2.Framework.FrameworkLocalization.CurrentLanguage}");
 
             ConfigEntry<bool> entry = context.Settings.AddToggle(
                 AutoStationServicePlugin.TechPointsSection,
@@ -119,6 +121,17 @@ namespace GK2AutoStationService
 
             entry.SettingChanged += OnSettingChanged;
             AutoStationServicePlugin.CaretakerTakesTechPoints = entry;
+
+            ConfigEntry<bool> logEntry = context.Settings.AddToggle(
+                AutoStationServicePlugin.LogSection,
+                AutoStationServicePlugin.LogKey,
+                AutoStationServicePlugin.LogDefault,
+                Localized(LocLogName, AutoStationServicePlugin.LogLabel),
+                Localized(LocLogDescription, AutoStationServicePlugin.LogDescription),
+                1);
+
+            logEntry.SettingChanged += OnLogSettingChanged;
+            AutoStationServicePlugin.DetailedLog = logEntry;
         }
 
         private static string Localized(string key, string englishFallback) =>
@@ -127,7 +140,14 @@ namespace GK2AutoStationService
         private static void OnSettingChanged(object sender, EventArgs e)
         {
             ConfigEntry<bool> entry = sender as ConfigEntry<bool>;
-            AutoStationServicePlugin.Log?.LogInfo($"[ASS] caretaker takes tech points: {(entry != null && entry.Value ? "on" : "off")}");
+            AutoStationServicePlugin.LogInfo($"[ASS] caretaker takes tech points: {(entry != null && entry.Value ? "on" : "off")}");
+        }
+
+        private static void OnLogSettingChanged(object sender, EventArgs e)
+        {
+            // the change itself has to be reported through the source that was just switched off
+            ConfigEntry<bool> entry = sender as ConfigEntry<bool>;
+            AutoStationServicePlugin.Log?.LogInfo($"[ASS] detailed log: {(entry != null && entry.Value ? "on" : "off")}");
         }
     }
 }

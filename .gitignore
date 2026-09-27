@@ -3,3 +3,4 @@ obj/
 dist/
 *.user
 .vs/
+tools/build-deploy.ps1

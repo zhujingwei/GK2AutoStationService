@@ -2,5 +2,7 @@
   "mod.name": "自动工作站服务",
   "mod.description": "没有分配僵尸的自动工作站，完成的产物由搬运工僵尸取走。",
   "settings.caretaker_tech_points.name": "搬运工取走科技点",
-  "settings.caretaker_tech_points.description": "搬运工把无人自动工作站的产物搬走时，会像工匠僵尸一样把科技点一并收下。关闭后，科技点会掉在地上，由玩家自己拾取。"
+  "settings.caretaker_tech_points.description": "搬运工把无人自动工作站的产物搬走时，会像工匠僵尸一样把科技点一并收下。关闭后，科技点会掉在地上，由玩家自己拾取。",
+  "settings.detailed_log.name": "详细日志",
+  "settings.detailed_log.description": "把 mod 的工作过程写进 BepInEx 日志（扫描工作站、创建取货单、园丁代搬等）。报错信息始终会记录。一切正常后可以关掉，日志就安静了。"
 }

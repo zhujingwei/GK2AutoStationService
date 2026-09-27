@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>GK2AutoStationService</AssemblyName>
     <Product>Auto Station Service Mod for Graveyard Keeper 2</Product>
-    <Version>1.5.0</Version>
+    <Version>1.5.1</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 

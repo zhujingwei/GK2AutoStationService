@@ -5,7 +5,7 @@ Caretaker zombies pick up the finished products from **auto-crafting stations th
 搬运工僵尸会去**没插僵尸的自动工作站**（熔炉、蒸馏立方体等）取走成品，让工作站能继续生产，而不是被成品堵死。
 
 - Plugin GUID: `com.gk2mod.autostationservice`
-- Version: 1.5.0
+- Version: 1.5.1
 - Requires: BepInEx 5.4.x (x64) for Graveyard Keeper 2
 - Optional: [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) — adds this mod's settings to its Mods menu
 - Single file: `BepInEx/plugins/GK2AutoStationService.dll` (plus a translation file under the framework's folder, see below)
@@ -140,6 +140,10 @@ If a station never produces anything, first check whether its zone appears in `c
 - Verified alongside BepInEx 5 based mods (framework mods, inventory mods, time-of-day mods).
 
 ## Changelog / 更新日志
+
+### 1.5.1
+- Fixed a station whose craft queue also needs its own output as material — a glass furnace with bottles queued behind the glass. The product detection treated the finished glass as "material the queue still needs", so no pickup order was created and the caretaker never came for it. The product is now taken from the craft that is parked waiting for pickup, whatever the rest of the queue asks for.
+- The log now names that case instead of staying silent: `<station>: no product recognised - craft inventory (...), the queue still needs [...]`.
 
 ### 1.5.0
 - **A zone that has no caretaker now gets served by its gardener.** A garden zone cannot host a zombie station at all, so its workerless auto stations used to stay untouched. An idle gardener now walks over, takes the product and puts it into the zone storages — which storage follows the vanilla caretaker rule (nearest one that already holds the item, otherwise nearest one with room).

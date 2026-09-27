@@ -1,4 +1,4 @@
-# Nexus 发布文案（Auto Station Service 1.5.0）
+# Nexus 发布文案（Auto Station Service 1.5.1）
 
 下面是可以直接复制粘贴到 Nexus 上传页的内容。上传步骤和检查清单在最下面。
 
@@ -118,6 +118,10 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 ## Changelog（Nexus 的 Changelog 字段）
 
 ```
+1.5.1
+- Fixed a station whose craft queue also needs its own output as material (a glass furnace with bottles queued behind the glass): the mod treated the finished glass as material the queue still needed, created no pickup order and the caretaker never came for it. The product is now taken from the craft that is parked waiting for pickup, whatever the rest of the queue asks for.
+- The log now names the case where no product can be identified instead of staying silent.
+
 1.5.0
 - A zone without a caretaker is now served by its gardener. The garden can't host a zombie station at all, so its workerless auto stations used to sit untouched; an idle gardener now walks over, takes the product and puts it into the zone storages (nearest storage that already holds the item, otherwise nearest with room).
 - Gardener errands are ordered by waiting time against the gardener's garden work, so a product that waited longest is collected first; the gardener is never interrupted in the middle of a garden task.
@@ -156,7 +160,7 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 
 ## 上传前检查清单
 
-1. **主文件**：上传 `dist/GK2AutoStationService-1.5.0.zip`（内部结构：`BepInEx/plugins/GK2AutoStationService.dll` + `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/zh.json`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.5.0.zip` 之外的任意名，但保持 `.zip`。
+1. **主文件**：上传 `dist/GK2AutoStationService-1.5.1.zip`（内部结构：`BepInEx/plugins/GK2AutoStationService.dll` + `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/zh.json`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.5.1.zip` 之外的任意名，但保持 `.zip`。
 2. **游戏页**：Graveyard Keeper 2（Steam app id 4358690，Nexus 上选游戏时不要选成一代 Graveyard Keeper）。
 3. **License / permissions**：Nexus 必填。建议 `MIT` 或 `All rights reserved + 允许转载/整合`；请自行决定，仓库里目前没有 LICENSE 文件。
 4. **图片**：Nexus 页面首图不是必填但强烈建议（1600×900 或相近 16:9）。需要的话可以让我生成一张标题图/截图版式。
@@ -164,4 +168,4 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 6. **Related mods**：如果之后也发布 Caretaker Priority，两边互相填 Related；本 mod 不依赖它，单独可用。
 7. **Source 字段**：填 `https://github.com/zhujingwei/GK2AutoStationService`（Description 里也写了）。
 8. **首次发布**：Nexus 新 mod 需要等待审核/首页曝光（普通 mod 立即发布，仅成人/敏感内容才审核）；上传后建议在 Description 里保留排查用的日志关键字，减少问答量。
-9. **GitHub 侧可选**：给 `v1.5.0` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.5.0.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。
+9. **GitHub 侧可选**：给 `v1.5.1` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.5.1.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。

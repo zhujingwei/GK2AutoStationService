@@ -16,7 +16,7 @@ namespace GK2AutoStationService
     public class AutoStationServicePlugin : BaseUnityPlugin
     {
         internal const string ModGuid = "com.gk2mod.autostationservice";
-        internal const string ModVersion = "1.5.0";
+        internal const string ModVersion = "1.5.1";
         internal const string TechPointsSection = "General";
         internal const string TechPointsKey = "CaretakerTakesTechPoints";
         internal const bool TechPointsDefault = true;
@@ -163,6 +163,7 @@ namespace GK2AutoStationService
         private readonly HashSet<Guid> loggedNoOutputSpace = new HashSet<Guid>();
         private readonly HashSet<Guid> loggedUnreachable = new HashSet<Guid>();
         private readonly Dictionary<Guid, float> pickupWaitLogTime = new Dictionary<Guid, float>();
+        private readonly Dictionary<Guid, float> noProductLogTime = new Dictionary<Guid, float>();
         private readonly HashSet<string> caretakerZones = new HashSet<string>();
         // gardeners standing idle in their zone, by zone id - they serve the stations of a zone
         // that has no caretaker at all (the garden zone cannot host a zombie_supplier_station)
@@ -228,6 +229,7 @@ namespace GK2AutoStationService
                 loggedNoOutputSpace.Clear();
                 loggedUnreachable.Clear();
                 pickupWaitLogTime.Clear();
+                noProductLogTime.Clear();
                 loggedCaretakers = false;
             }
 
@@ -596,13 +598,17 @@ namespace GK2AutoStationService
             // has emptied, otherwise nobody ever comes for the last product
             if (!pendingPickup && (productIds.Count > 0 || cc.HasCraftsInQueue))
             {
-                Item product = FindProduct(inv, required, productIds);
+                Item product = FindProduct(inv, required, productIds, ParkedOutputIds(cc));
                 if (product != null && StationProxyRegistry.EnsureProxy(station))
                 {
                     PickupOrder order = new PickupOrder(station.UniqueId, new Item(product.id, product.Count));
                     zone.PlaceNewOrder(order);
                     ServiceOrderRegistry.Track(order, zone, station.UniqueId);
                     AutoStationServicePlugin.LogInfo($"[ASS] {station.id}: PickupOrder created <- {product.id} x{product.Count}");
+                }
+                else if (product == null)
+                {
+                    LogNoProduct(station, inv, required);
                 }
             }
         }
@@ -666,9 +672,10 @@ namespace GK2AutoStationService
 
             HashSet<string> productIds = CollectProductIds(station, cc);
             HashSet<string> required = CollectRequiredItemIds(cc);
-            Item product = FindProduct(inv, required, productIds);
+            Item product = FindProduct(inv, required, productIds, ParkedOutputIds(cc));
             if (product == null)
             {
+                LogNoProduct(station, inv, required);
                 return;
             }
 
@@ -752,6 +759,21 @@ namespace GK2AutoStationService
 
             pickupWaitLogTime[station.UniqueId.Guid] = now;
             AutoStationServicePlugin.LogInfo($"[ASS] {station.id}: craft finished, waiting for the product to be carried away (queue={cc.CraftElementsQueue?.Count ?? 0}, craft inventory ({FillText(inv)}): {NamesText(inv)})");
+        }
+
+        // an unidentifiable product means no pickup order and a station that waits forever, so name
+        // what is lying in the station and what the queue still asks for
+        private void LogNoProduct(WgoData station, Inventory inv, HashSet<string> required)
+        {
+            float now = Time.unscaledTime;
+            float last;
+            if (noProductLogTime.TryGetValue(station.UniqueId.Guid, out last) && now - last < PICKUP_WAIT_LOG_INTERVAL)
+            {
+                return;
+            }
+
+            noProductLogTime[station.UniqueId.Guid] = now;
+            AutoStationServicePlugin.LogInfo($"[ASS] {station.id}: no product recognised - craft inventory ({FillText(inv)}): {NamesText(inv)}, the queue still needs [{string.Join(", ", new List<string>(required).ToArray())}]");
         }
 
         // an untaken order this mod did not create is a leftover: either a material delivery from
@@ -852,12 +874,56 @@ namespace GK2AutoStationService
             }
         }
 
-        private static Item FindProduct(Inventory inv, HashSet<string> required, HashSet<string> productIds)
+        // the ids of the craft that is parked waiting for pickup. its own output is the product, even
+        // when a craft further down the queue needs the same item as material - a glass furnace
+        // makes glass and later bottles it, so "anything the queue does not need" is not enough
+        private static HashSet<string> ParkedOutputIds(CraftComponent cc)
+        {
+            HashSet<string> result = new HashSet<string>();
+            if (cc == null)
+            {
+                return result;
+            }
+
+            CraftElementBase parked = cc.CurrentCraftElement;
+            if (parked == null)
+            {
+                return result;
+            }
+
+            AddOutputIds(result, parked.Def);
+
+            List<ItemCount> pre = parked.PreOutputItems;
+            if (pre != null)
+            {
+                for (int i = 0; i < pre.Count; i++)
+                {
+                    if (pre[i] != null && !string.IsNullOrEmpty(pre[i].itemId))
+                    {
+                        result.Add(pre[i].itemId);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static Item FindProduct(Inventory inv, HashSet<string> required, HashSet<string> productIds, HashSet<string> parkedOutputIds)
         {
             List<Item> items = inv.Data.Inventory;
             if (items == null)
             {
                 return null;
+            }
+
+            // the parked craft's own output wins over the queue-requirements rule
+            for (int i = 0; i < items.Count; i++)
+            {
+                Item it = items[i];
+                if (it != null && !it.IsEmpty && parkedOutputIds.Contains(it.id) && !IsFuelItem(it.id))
+                {
+                    return it;
+                }
             }
 
             bool strict = productIds.Count > 0;
@@ -874,8 +940,7 @@ namespace GK2AutoStationService
                     continue;
                 }
 
-                ItemDef def = GameBalance.Me.GetData<ItemDef>(it.id);
-                if (def != null && def.isFuel)
+                if (IsFuelItem(it.id))
                 {
                     continue;
                 }
@@ -884,6 +949,12 @@ namespace GK2AutoStationService
             }
 
             return null;
+        }
+
+        private static bool IsFuelItem(string itemId)
+        {
+            ItemDef def = GameBalance.Me.GetData<ItemDef>(itemId);
+            return def != null && def.isFuel;
         }
 
         // product ids the station's crafts can produce - taken from the craft definitions of

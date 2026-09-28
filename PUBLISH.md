@@ -1,4 +1,4 @@
-# Nexus 发布文案（Auto Station Service 1.5.1）
+# Nexus 发布文案（Auto Station Service 1.6.0）
 
 下面是可以直接复制粘贴到 Nexus 上传页的内容。上传步骤和检查清单在最下面。
 
@@ -13,7 +13,7 @@ Auto Station Service
 ## Summary（短简介，约 200 字符）
 
 ```
-Caretaker zombies pick up the finished products from auto-crafting stations that have no zombie assigned (furnace, distillation cube...), so the station keeps working instead of filling up. A garden zone, where no caretaker can live, is served by its gardener instead. Two settings: who takes the craft's tech points, and how noisy the log is.
+Caretaker zombies pick up the finished products from auto-crafting stations that have no zombie assigned (furnace, distillation cube...), so the station keeps working instead of filling up. They clear loose drops off the ground of their zone, collect the tech point orbs lying there, and a garden zone - where no caretaker can live - is served by its gardener. Four settings.
 ```
 
 ## Category / Tags
@@ -28,7 +28,7 @@ Caretaker zombies pick up the finished products from auto-crafting stations that
 ```
 [size=5][b]Auto Station Service[/b][/size]
 
-Caretaker zombies pick up the finished products from [b]auto-crafting stations that have no zombie assigned[/b] — furnace, distillation cube and friends — so those stations keep working instead of filling up with output nobody collects.
+Caretaker zombies pick up the finished products from [b]auto-crafting stations that have no zombie assigned[/b] — furnace, distillation cube and friends — so those stations keep working instead of filling up with output nobody collects. The same zombies also clear [b]loose drops[/b] off the floor of their zone and take the [b]tech point orbs[/b] lying there.
 
 [line]
 
@@ -55,14 +55,20 @@ It gives workerless auto stations the vanilla worker treatment:
 [*][b]Stations with an attached zombie are ignored[/b] — those already work the vanilla way.
 [*][b]Conveyor workbenches are ignored[/b] — they run their own loop and push products to their output cell.
 [*][b]Stations that share storage with another object[/b] (workbench placed on top of a chest) are skipped: input and output already go through that shared storage.
-[*][b]Two settings[/b] (see below), no keybinds. The mod is active as soon as the plugin loads.
+[*][b]The ground gets cleaned up.[/b] A zombie picks up ordinary items lying on the floor of its own zone — what a full chest spat out, or a product that dropped — and stores them: the nearest storage that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one, and when no chest in the zone can take the item it goes back on the ground and the zombie returns to its station. A caretaker walks such a pile over to the chest; a gardener hands it over from where he stands, the way the game's own garden deposit works. Big items and anything the game ties to a world object (logs, corpses) are left where they are.
+[*][b]Tech point orbs on the ground go to the zombie.[/b] In vanilla only the player can collect them. Here a worker absorbs an orb lying within its reach and a "+1 <orb icon>" pops over its head; a player standing in range always keeps priority, decided by the same rule the game uses for him.
+[*][b]Four settings[/b] (see below), no keybinds. The mod is active as soon as the plugin loads.
 [/list]
 
 [size=4][b]Tech points[/b][/size]
-An auto craft hands its tech points out when the product leaves the station — which, with no worker assigned, is when the caretaker (or the gardener) carries it away. By default that zombie [b]takes the points with it[/b], exactly like a crafter zombie does for its own crafts (a zombie's tech points are the currency for its talents). Turn the setting off and the points drop on the ground as red/green/blue orbs for the player to collect, which is what a workerless station does in vanilla.
+An auto craft hands its tech points out when the product leaves the station — which, with no worker assigned, is when the caretaker (or the gardener) carries it away. By default that zombie [b]takes the points with it[/b], exactly like a crafter zombie does for its own crafts (a zombie's tech points are the currency for its talents). Turn the setting off and the points drop on the ground as red/green/blue orbs, which is what a workerless station does in vanilla.
 
-[size=4][b]Detailed log[/b][/size]
-Everything the mod does is written to [b]BepInEx/LogOutput.log[/b] with the [b][ASS][/b] prefix. Turn [b]Detailed log[/b] off for a quiet log once everything works — station scans, pickup orders and the gardener's errands stop being logged. Errors are always logged whatever the setting says, and the one startup line naming the loaded version stays as well.
+[size=4][b]The other three settings[/b][/size]
+[list]
+[*][b]Carrier collects loose drops in its zone[/b] (default on) — the ground cleaning described above. Off: drops stay where they are.
+[*][b]Tech point absorption range[/b] (default 0) — how close a zombie has to be for an orb on the ground to drift to it. 0 uses exactly the range the game pulls orbs to the player with, so a zombie reaches as far as the player does; any value above 0 is that many units.
+[*][b]Detailed log[/b] — everything the mod does is written to [b]BepInEx/LogOutput.log[/b] with the [b][ASS][/b] prefix. Turn it off for a quiet log once everything works — station scans, pickup orders, the gardener's errands and the loose drop lines stop being logged. Errors are always logged whatever the setting says, and the one startup line naming the loaded version stays as well.
+[/list]
 
 [size=4][b]Settings[/b][/size]
 [list]
@@ -102,6 +108,10 @@ Everything from this mod is logged to [b]BepInEx/LogOutput.log[/b] with the pref
 [*][i]the station cannot store its output[/i] — the station's storage is full, nothing was produced
 [*][i]the gardener cannot reach this station[/i] — pathing failed a few times, the station is left to the player
 [*][i]... took the tech points (red r, green g, blue b)[/i] — the carrier collected the craft's tech points (setting on)
+[*][i]zone drop scan: N loose drop(s) in M zone(s) the mod watches[/i] — the line that says the drop feature sees something at all
+[*][i]going for loose drop item xN [...] in zone[/i] / [i]picked up item xN[/i] / [i]put item xN into <storage> on the spot[/i] — a zombie collecting a loose drop, and storing it
+[*][i]no chest can take item xN in zone - putting it back on the ground[/i] — no storage in that zone can take it, so it is dropped again
+[*][i]absorbed tech point orb tech_red[/i] — an orb on the ground went to the zombie
 [*][i]GK2 Mod Framework language: ...[/i] — the language the framework menu texts were resolved in
 [/list]
 
@@ -109,7 +119,7 @@ Everything from this mod is logged to [b]BepInEx/LogOutput.log[/b] with the pref
 Delete the DLL. Before you do, make sure no station is waiting for pickup — the log line [i]craft finished, waiting for the product to be carried away[/i] (printed every 60 s) is the tell. The pickup order this mod creates targets the station itself and is only resolvable while the mod is running, so a pending order in a save would make a caretaker throw errors at that station once the mod is removed. If you already uninstalled with an order pending, put the DLL back, load the save, wait until the product has been carried away, save, then remove it again. Reinstalling 1.3.2 or newer also cleans up such leftover orders.
 
 [size=4][b]Compatibility[/b][/size]
-Built for Graveyard Keeper 2 (Steam) on BepInEx 5.4.23.4. It uses four Harmony prefixes — [b]ZombieSystemData.GetZombie[/b], [b]ZombieWgoData.CaretakerTryMoveToZombie[/b], [b]WgoData.DropStoredTechPoints[/b] and [b]ZombieWgoData.GardenerUpdateBehaviour[/b] (only while a gardener errand runs) — and does not touch crafting, the caretaker state machine or the garden orders, so it can be used with other BepInEx mods. No other mod is required; [b]GK2 Mod Framework[/b] is optional and only adds the settings page.
+Built for Graveyard Keeper 2 (Steam) on BepInEx 5.4.23.4. It uses five Harmony prefixes — [b]ZombieSystemData.GetZombie[/b], [b]ZombieWgoData.CaretakerTryMoveToZombie[/b], [b]WgoData.DropStoredTechPoints[/b], [b]ZombieWgoData.GardenerUpdateBehaviour[/b] and [b]ZombieWgoData.CaretakerUpdateBehaviour[/b] (the last two only while one of the mod's own errands runs) — and does not touch crafting, the caretaker state machine or the garden orders, so it can be used with other BepInEx mods. No other mod is required; [b]GK2 Mod Framework[/b] is optional and only adds the settings page.
 
 [size=4][b]Source[/b][/size]
 Source code and build instructions: https://github.com/zhujingwei/GK2AutoStationService — built with netstandard2.1 against the game's assemblies.
@@ -118,6 +128,13 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 ## Changelog（Nexus 的 Changelog 字段）
 
 ```
+1.6.0
+- Loose drops are collected: a zombie picks up ordinary items lying on the ground of its own zone and stores them (nearest storage that already holds the item, otherwise nearest with room). A full chest sends it to the next one; when no chest in the zone can take it, the item goes back on the ground and the zombie returns to its station. New setting "Carrier collects loose drops in its zone" (default on). Big items and anything tied to a world object (logs, corpses) are left alone.
+- A gardener stores what he picks up on the spot, the way the game's own garden deposit works, so he no longer walks to the chest; a caretaker still carries the pile over.
+- Tech point orbs on the ground go to the zombie: a worker absorbs an orb lying within its reach and a "+1" with the orb icon pops over its head. New setting "Tech point absorption range" (default 0 = exactly the range the game pulls orbs to the player with; a player in range always keeps priority).
+- Fixed: a gardener could not walk at all — its walk requests were placed on a navigation graph the garden does not have, and the game drops such a request silently. Gardeners now walk on the garden graph, exactly like vanilla, and a walk that is accepted but never starts is retried the other way and logged.
+- Fixed: an absorbed orb used to blink out of existence when it already lay at the zombie's feet; it now drifts into the zombie first.
+
 1.5.1
 - Fixed a station whose craft queue also needs its own output as material (a glass furnace with bottles queued behind the glass): the mod treated the finished glass as material the queue still needed, created no pickup order and the caretaker never came for it. The product is now taken from the craft that is parked waiting for pickup, whatever the rest of the queue asks for.
 - The log now names the case where no product can be identified instead of staying silent.
@@ -160,7 +177,7 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 
 ## 上传前检查清单
 
-1. **主文件**：上传 `dist/GK2AutoStationService-1.5.1.zip`（内部结构：`BepInEx/plugins/GK2AutoStationService.dll` + `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/zh.json`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.5.1.zip` 之外的任意名，但保持 `.zip`。
+1. **主文件**：上传 `dist/GK2AutoStationService-1.6.0.zip`（内部结构：`BepInEx/plugins/GK2AutoStationService.dll` + `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/zh.json`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.6.0.zip` 之外的任意名，但保持 `.zip`。
 2. **游戏页**：Graveyard Keeper 2（Steam app id 4358690，Nexus 上选游戏时不要选成一代 Graveyard Keeper）。
 3. **License / permissions**：Nexus 必填。建议 `MIT` 或 `All rights reserved + 允许转载/整合`；请自行决定，仓库里目前没有 LICENSE 文件。
 4. **图片**：Nexus 页面首图不是必填但强烈建议（1600×900 或相近 16:9）。需要的话可以让我生成一张标题图/截图版式。
@@ -168,4 +185,4 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 6. **Related mods**：如果之后也发布 Caretaker Priority，两边互相填 Related；本 mod 不依赖它，单独可用。
 7. **Source 字段**：填 `https://github.com/zhujingwei/GK2AutoStationService`（Description 里也写了）。
 8. **首次发布**：Nexus 新 mod 需要等待审核/首页曝光（普通 mod 立即发布，仅成人/敏感内容才审核）；上传后建议在 Description 里保留排查用的日志关键字，减少问答量。
-9. **GitHub 侧可选**：给 `v1.5.1` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.5.1.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。
+9. **GitHub 侧可选**：给 `v1.6.0` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.6.0.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。

@@ -1,11 +1,11 @@
 # Auto Station Service (Graveyard Keeper 2)
 
-Caretaker zombies pick up the finished products from **auto-crafting stations that have no zombie assigned** (furnace, distillation cube, etc.), so those stations keep working instead of filling up with output nobody collects.
+Caretaker zombies pick up the finished products from **auto-crafting stations that have no zombie assigned** (furnace, distillation cube, etc.), so those stations keep working instead of filling up with output nobody collects. They also clear loose drops off the ground of their zone and take the tech point orbs lying there.
 
-搬运工僵尸会去**没插僵尸的自动工作站**（熔炉、蒸馏立方体等）取走成品，让工作站能继续生产，而不是被成品堵死。
+搬运工僵尸会去**没插僵尸的自动工作站**（熔炉、蒸馏立方体等）取走成品，让工作站能继续生产，而不是被成品堵死；顺手还会把**本区域地上的掉落**捡进仓库、把地上的**科技点球**收掉。
 
 - Plugin GUID: `com.gk2mod.autostationservice`
-- Version: 1.5.1
+- Version: 1.6.0
 - Requires: BepInEx 5.4.x (x64) for Graveyard Keeper 2
 - Optional: [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) — adds this mod's settings to its Mods menu
 - Single file: `BepInEx/plugins/GK2AutoStationService.dll` (plus a translation file under the framework's folder, see below)
@@ -39,15 +39,17 @@ This mod closes that gap with the vanilla worker model:
 - **Stations with an attached zombie are ignored** — those already work the vanilla way.
 - **Conveyor workbenches are ignored** — they run their own loop and push products to their output cell.
 - **Stations that share storage with another object** (workbench placed on top of a chest) are skipped: input and output already go through that shared storage.
-- **Two settings** (see below); no keybinds, the mod is active as soon as the plugin loads.
+- **The ground gets cleaned up too.** A zombie also picks up ordinary items lying on the floor of its own zone — what a full chest spat out, or a product that dropped — and puts them into a storage: the nearest one that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one, and when no chest in the zone can take it the item goes back on the ground and the zombie returns to its station. Big items and anything the game ties to a world object (logs, corpses) are left where they are. A caretaker carries such a pile to the chest; a gardener hands it over from where it stands, the way the game's own garden deposit works, so he never makes a trip for it.
+- **Tech point orbs on the ground go to the zombie now.** In vanilla only the player can collect them; here a worker absorbs an orb lying within its reach and a "+1 <orb icon>" pops over its head. A player standing in range always keeps priority, decided by the same rule the game uses for him.
+- **Four settings** (see below); no keybinds, the mod is active as soon as the plugin loads.
 
 ### Settings / 设置
 
-Both settings live in the same place: with [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) installed they are toggles on this mod's page in the Mods menu and apply immediately; without it they are in `BepInEx/config/com.gk2mod.autostationservice.cfg` (restart to apply). The mod works fine without the framework; only the UI is missing.
+All four live in the same place: with [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) installed they are on this mod's page in the Mods menu and apply immediately; without it they are in `BepInEx/config/com.gk2mod.autostationservice.cfg` (restart to apply). The mod works fine without the framework; only the UI is missing.
 
-两个设置：装了框架就在 Mods 菜单本 mod 的页面上，改完立即生效；没装就在 `BepInEx/config/com.gk2mod.autostationservice.cfg` 里改（重启生效）。
+四个设置：装了框架就在 Mods 菜单本 mod 的页面上，改完立即生效；没装就在 `BepInEx/config/com.gk2mod.autostationservice.cfg` 里改（重启生效）。
 
-#### 1. Tech points / 科技点 — `Caretaker takes the tech points` (default **on**)
+#### 1. Tech points / 科技点 — `Carrier takes the tech points` (default **on**)
 
 An auto craft stores its tech points in the station, and they are handed out when the product leaves the station. With this mod that means the zombie carrying the product away — caretaker or gardener — and by default it takes the points with it, the same way a crafter zombie collects them for its own crafts (zombie tech points are the currency for that zombie's talents). Turn the setting off and the points drop on the ground as orbs for the player to collect instead, which is what a workerless station does in vanilla.
 
@@ -55,11 +57,23 @@ An auto craft stores its tech points in the station, and they are handed out whe
 
 - Log line when a zombie takes them: `<station>: <type> <guid> took the tech points (red r, green g, blue b)`.
 
-#### 2. Detailed log / 详细日志 — `Detailed log` (default **on**)
+#### 2. Loose drops / 地面掉落 — `Carrier collects loose drops in its zone` (default **on**)
 
-Everything the mod does is written to `BepInEx/LogOutput.log` with the `[ASS]` prefix. Turn this off for a quiet log once everything works — station scans, pickup orders and the gardener's errands stop being logged. Errors are always logged, whatever this setting says, and the one line naming the loaded version stays as well.
+Items lying on the ground of a zone that has a caretaker or a gardener are picked up and stored, as described above. Turn it off and the mod leaves the floor alone (the station service keeps working).
 
-mod 的工作过程（扫描工作站、创建取货单、园丁代搬等）都会写进 `BepInEx/LogOutput.log`。一切正常后可以关掉，日志就安静了；**报错信息始终记录**，启动时那行版本信息也保留。
+开启时（默认）搬运工/园丁会把本区域地上的普通掉落捡进仓库（见上文）。关掉后 mod 不再动地上的东西，工作站服务照旧。
+
+#### 3. Tech point orbs / 科技点球 — `Tech point absorption range` (default **0**)
+
+How close a zombie has to be for an orb on the ground to drift to it. **0** uses exactly the range the game itself pulls orbs to the player with, so a zombie reaches as far as the player does. Any value above 0 is that many units. A player in range always keeps his orbs.
+
+地上的科技点离僵尸多近才会飘过去被吸收。**0（默认）**表示和游戏把科技点吸给玩家的范围完全一致，僵尸够得着的距离和玩家一样；填大于 0 的数值则用指定距离。玩家在附近时科技点始终优先归玩家。
+
+#### 4. Detailed log / 详细日志 — `Detailed log` (default **on**)
+
+Everything the mod does is written to `BepInEx/LogOutput.log` with the `[ASS]` prefix. Turn this off for a quiet log once everything works — station scans, pickup orders, the gardener's errands and the loose drop lines stop being logged. Errors are always logged, whatever this setting says, and the one line naming the loaded version stays as well.
+
+mod 的工作过程（扫描工作站、创建取货单、园丁代搬、捡地面掉落等）都会写进 `BepInEx/LogOutput.log`。一切正常后可以关掉，日志就安静了；**报错信息始终记录**，启动时那行版本信息也保留。
 
 - Note: the texts are read at startup, so a language change in the game options needs a restart before the framework's menu shows the new labels.
 
@@ -81,6 +95,10 @@ Vortex: install the archive as-is; it contains the `BepInEx/plugins/` folder str
 2. Queue up the crafts you want (or let it be queued by whatever you normally do).
 3. Make sure there is a **caretaker zombie** in the same zone as the station — or, in a zone that cannot host one (the garden), an **idle gardener**.
 4. The station works, the zombie comes for the product, and the queue continues on its own.
+
+Loose drops need no setup: whatever ends up on the floor of a zone that has one of these zombies is picked up on its own (see the setting above). Big items and items tied to a world object are never touched.
+
+地上的掉落不需要额外设置：那个区域里有搬运工或园丁，地上的普通掉落就会被自动捡走（见上面的设置）。大件和与世界物件绑定的物品不会动。
 
 Notes / 注意：
 
@@ -128,18 +146,41 @@ Useful lines:
 | `<station>: removed stale PickupOrder ...` | A leftover pickup order (item no longer in the station) was deleted on load |
 | `<station>: removed leftover DeliveryOrder ...` | A 1.2.x delivery order was deleted (stations feed themselves) |
 | `caretaker <guid>: order <guid> points at <guid> ... - order dropped` | A caretaker found an order whose target no longer exists; it was dropped instead of crashing the caretaker |
+| `zone drop scan: N loose drop(s) in M zone(s) the mod watches (turn on 'Detailed log' for one line per drop)` | Printed when the number of loose drops changes — the line that says whether the drop feature sees anything at all |
+| `loose drop in <zone>: <item> xN -> <chest> [guid] (distance N)` | With `Detailed log` on: one line per drop, naming the storage it would go into |
+| `loose drop in <zone>: <item> xN - big or wgo-linked item, skipped for now` | Logs, corpses and other world-linked items are deliberately left alone |
+| `<type> <guid>: going for loose drop <item> xN [guid] in <zone> (... walking to (x, z) on the GD point graph\|zone graph)` | A zombie took a drop as its next errand |
+| `<type> <guid>: picked up <item> xN (carrying N)` | It reached the drop and took it (as much as fits in one stack) |
+| `put <item> xN into <chest> [guid] on the spot` | A gardener stored the item from where he stood — he does not walk to the chest |
+| `carrying <item> xN to <chest> [guid]` / `put <item> xN into <chest> [guid]` | A caretaker walks the pile to the chest and puts it in |
+| `<chest> cannot take <item> - looking for another chest` | That chest was full; the next one is tried |
+| `no chest can take <item> xN in <zone> - putting it back on the ground` | No storage in the zone can take it, so the item is dropped where the zombie stands and the errand ends |
+| `<type> <guid>: absorbed tech point orb tech_red` | A worker absorbed an orb lying on the ground; the point went to the zombie |
+| `<type> <guid> has no bubble point - the tech point pop is hung over his head instead` | The `+1` pop cannot use the game's own anchor on a zombie, so it is shown above his head |
+| `<type> <guid> stopped collecting (<reason>)` | The errand ended: the drop was gone, or it could not be reached |
+| `<type> <guid>: the zone graph has no path from here (...) - falling back to the GD point graph` | A zone with no caretaker graph; the walk uses the garden graph instead |
 
 If a station never produces anything, first check whether its zone appears in `caretaker zone(s):` or `gardener zone(s):`.
 
 ## Compatibility / 兼容性
 
 - Built for Graveyard Keeper 2 (Steam, app id 4358690) with BepInEx 5.4.23.4, Unity 6000.3.x, Mono.
-- Uses four Harmony prefixes: `ZombieSystemData.GetZombie` (resolves a serviced station to its stand-in zombie), `ZombieWgoData.CaretakerTryMoveToZombie` (drops an order whose target is gone instead of letting the caretaker crash on it), `WgoData.DropStoredTechPoints` (hands the station's stored tech points to the zombie carrying the product away) and `ZombieWgoData.GardenerUpdateBehaviour` (drives the gardener's errand in a zone without a caretaker; the vanilla gardener behaviour is only skipped while such an errand runs). It does not patch crafting, the caretaker state machine or any garden order.
+- Uses five Harmony prefixes: `ZombieSystemData.GetZombie` (resolves a serviced station to its stand-in zombie), `ZombieWgoData.CaretakerTryMoveToZombie` (drops an order whose target is gone instead of letting the caretaker crash on it), `WgoData.DropStoredTechPoints` (hands the station's stored tech points to the zombie carrying the product away), `ZombieWgoData.GardenerUpdateBehaviour` (drives the gardener's errands in a zone without a caretaker) and `ZombieWgoData.CaretakerUpdateBehaviour` (drives the caretaker's loose drop errand). A zombie's own behaviour is only skipped while one of the mod's errands is running, and never while it is busy with an order of the game's. It does not patch crafting, the caretaker state machine or any garden order.
+- Tech point orbs are absorbed without using the orb's own `Collect()` — the orb is removed from the scene and the point is written to the zombie, so the value never lands on the player by accident.
 - [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) (Nexus mod 42) is optional: when installed, the mod registers a page with its settings in the framework's Mods menu. The framework is only a soft dependency — the mod loads and works without it, with the settings in its own config file.
 - Load order is irrelevant; no other mod is required.
 - Verified alongside BepInEx 5 based mods (framework mods, inventory mods, time-of-day mods).
 
 ## Changelog / 更新日志
+
+### 1.6.0
+- **Loose drops are collected.** A zombie now picks up ordinary items lying on the ground in its own zone and stores them: the nearest storage that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one; when no chest in the zone can take the item, it goes back on the ground and the zombie returns to its station. New setting `Carrier collects loose drops in its zone` (default on).
+- **A gardener stores what it picks up on the spot**, the way the game's own garden deposit works, so he no longer makes a trip to the chest. A caretaker still walks the pile over and puts it in.
+- **Tech point orbs on the ground go to the zombie.** A worker absorbs an orb lying within reach and a `+1` with the orb icon pops over its head. New setting `Tech point absorption range` (default 0 = exactly the range the game pulls orbs to the player with; a player in range always keeps priority).
+- Big items and anything tied to a world object (logs, corpses) are deliberately left alone.
+- Fixed: a gardener could not walk at all — its walk requests were placed on a navigation graph the garden does not have, and the game drops such a request without a word. Gardeners now walk on the garden graph (the GD point graph), exactly like vanilla, and a walk that is accepted but never starts is retried the other way and logged instead of leaving the zombie standing there.
+- Fixed: an absorbed orb used to blink out of existence when it already lay at the zombie's feet. It now drifts into the zombie first, so the point can be seen going in.
+- The setting labels now say carrier/gardener where both zombies are meant.
 
 ### 1.5.1
 - Fixed a station whose craft queue also needs its own output as material — a glass furnace with bottles queued behind the glass. The product detection treated the finished glass as "material the queue still needs", so no pickup order was created and the caretaker never came for it. The product is now taken from the craft that is parked waiting for pickup, whatever the rest of the queue asks for.

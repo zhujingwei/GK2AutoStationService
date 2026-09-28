@@ -1,8 +1,12 @@
 {
   "mod.name": "自动工作站服务",
   "mod.description": "没有分配僵尸的自动工作站，完成的产物由搬运工僵尸取走。",
-  "settings.caretaker_tech_points.name": "搬运工取走科技点",
-  "settings.caretaker_tech_points.description": "搬运工把无人自动工作站的产物搬走时，会像工匠僵尸一样把科技点一并收下。关闭后，科技点会掉在地上，由玩家自己拾取。",
+  "settings.caretaker_tech_points.name": "搬运工/园丁取走科技点",
+  "settings.caretaker_tech_points.description": "搬运工或园丁把无人自动工作站的产物搬走时，会像工匠僵尸一样把科技点一并收下。关闭后，科技点会掉在地上，由玩家自己拾取。",
   "settings.detailed_log.name": "详细日志",
-  "settings.detailed_log.description": "把 mod 的工作过程写进 BepInEx 日志（扫描工作站、创建取货单、园丁代搬等）。报错信息始终会记录。一切正常后可以关掉，日志就安静了。"
+  "settings.detailed_log.description": "把 mod 的工作过程写进 BepInEx 日志（扫描工作站、创建取货单、园丁代搬等）。报错信息始终会记录。一切正常后可以关掉，日志就安静了。",
+  "settings.collect_zone_drops.name": "搬运工/园丁捡本区地面掉落",
+  "settings.collect_zone_drops.description": "除了无人自动工作站的产物，僵尸还会把本区域内散落在地上的普通物品捡起来放进仓库。关闭后，地上的掉落保持原样。",
+  "settings.magnet_range.name": "吸收科技点范围",
+  "settings.magnet_range.description": "地上的科技点离僵尸多近才会飘过去被吸收。0（默认）表示和游戏把科技点吸给玩家的范围完全一致；填大于 0 的数值则用指定距离。玩家在附近时科技点始终优先归玩家。"
 }

@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>GK2AutoStationService</AssemblyName>
     <Product>Auto Station Service Mod for Graveyard Keeper 2</Product>
-    <Version>1.5.1</Version>
+    <Version>1.6.0</Version>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
@@ -29,8 +29,30 @@
       <HintPath>E:\SteamLibrary\steamapps\common\Graveyard Keeper 2\GraveyardKeeper2_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>E:\SteamLibrary\steamapps\common\Graveyard Keeper 2\GraveyardKeeper2_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="LazyBearTechnology">
       <HintPath>E:\SteamLibrary\steamapps\common\Graveyard Keeper 2\GraveyardKeeper2_Data\Managed\LazyBearTechnology.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AstarPathfindingProject">
+      <HintPath>E:\SteamLibrary\steamapps\common\Graveyard Keeper 2\GraveyardKeeper2_Data\Managed\AstarPathfindingProject.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- HUD/Wgo views derive from SerializedMonoBehaviour, so the Sirenix assemblies they are built on
+         have to be visible to the compiler (nothing from them is used directly) -->
+    <Reference Include="Sirenix.Serialization">
+      <HintPath>E:\SteamLibrary\steamapps\common\Graveyard Keeper 2\GraveyardKeeper2_Data\Managed\Sirenix.Serialization.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Sirenix.Utilities">
+      <HintPath>E:\SteamLibrary\steamapps\common\Graveyard Keeper 2\GraveyardKeeper2_Data\Managed\Sirenix.Utilities.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Sirenix.OdinInspector.Attributes">
+      <HintPath>E:\SteamLibrary\steamapps\common\Graveyard Keeper 2\GraveyardKeeper2_Data\Managed\Sirenix.OdinInspector.Attributes.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <!-- optional in-game settings UI: GK2 Mod Framework by SuperMan4eg, installed from Nexus mod 42.

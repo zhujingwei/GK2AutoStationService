@@ -74,6 +74,10 @@ namespace GK2AutoStationService
         private const string LocSettingDescription = "settings.caretaker_tech_points.description";
         private const string LocLogName = "settings.detailed_log.name";
         private const string LocLogDescription = "settings.detailed_log.description";
+        private const string LocZoneDropsName = "settings.collect_zone_drops.name";
+        private const string LocZoneDropsDescription = "settings.collect_zone_drops.description";
+        private const string LocMagnetName = "settings.magnet_range.name";
+        private const string LocMagnetDescription = "settings.magnet_range.description";
 
         private const string ModName = "Auto Station Service";
         private const string ModDescription = "Caretaker zombies pick up the finished products from auto-crafting stations that have no zombie assigned.";
@@ -132,6 +136,36 @@ namespace GK2AutoStationService
 
             logEntry.SettingChanged += OnLogSettingChanged;
             AutoStationServicePlugin.DetailedLog = logEntry;
+
+            ConfigEntry<bool> dropEntry = context.Settings.AddToggle(
+                AutoStationServicePlugin.ZoneDropsSection,
+                AutoStationServicePlugin.ZoneDropsKey,
+                AutoStationServicePlugin.ZoneDropsDefault,
+                Localized(LocZoneDropsName, AutoStationServicePlugin.ZoneDropsLabel),
+                Localized(LocZoneDropsDescription, AutoStationServicePlugin.ZoneDropsDescription),
+                2);
+
+            dropEntry.SettingChanged += OnZoneDropsSettingChanged;
+            AutoStationServicePlugin.CollectZoneDrops = dropEntry;
+
+            ConfigEntry<float> magnetEntry = context.Settings.AddFloatSlider(
+                AutoStationServicePlugin.MagnetSection,
+                AutoStationServicePlugin.MagnetKey,
+                AutoStationServicePlugin.MagnetDefault,
+                0f,
+                30f,
+                Localized(LocMagnetName, AutoStationServicePlugin.MagnetLabel),
+                Localized(LocMagnetDescription, AutoStationServicePlugin.MagnetDescription),
+                0.5f,
+                3);
+
+            AutoStationServicePlugin.DropMagnetRange = magnetEntry;
+        }
+
+        private static void OnZoneDropsSettingChanged(object sender, EventArgs e)
+        {
+            ConfigEntry<bool> entry = sender as ConfigEntry<bool>;
+            AutoStationServicePlugin.LogInfo($"[ASS] caretaker collects loose drops: {(entry != null && entry.Value ? "on" : "off")}");
         }
 
         private static string Localized(string key, string englishFallback) =>

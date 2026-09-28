@@ -16,14 +16,14 @@ namespace GK2AutoStationService
     public class AutoStationServicePlugin : BaseUnityPlugin
     {
         internal const string ModGuid = "com.gk2mod.autostationservice";
-        internal const string ModVersion = "1.5.1";
+        internal const string ModVersion = "1.6.0";
         internal const string TechPointsSection = "General";
         internal const string TechPointsKey = "CaretakerTakesTechPoints";
         internal const bool TechPointsDefault = true;
         // english text: also the fallback of the localization lookup in FrameworkIntegration.cs
-        internal const string TechPointsLabel = "Caretaker takes the tech points";
+        internal const string TechPointsLabel = "Carrier takes the tech points";
         internal const string TechPointsDescription =
-            "A caretaker that carries the product away from a workerless auto station takes the tech points with it, like a crafter zombie does for its own crafts. Off: the tech points drop on the ground for the player to collect.";
+            "The zombie that carries the product away from a workerless auto station - caretaker or gardener - takes the tech points with it, like a crafter zombie does for its own crafts. Off: the tech points drop on the ground for the player to collect.";
 
         internal const string LogSection = "General";
         internal const string LogKey = "DetailedLog";
@@ -32,12 +32,28 @@ namespace GK2AutoStationService
         internal const string LogDescription =
             "Write what the mod does to the BepInEx log (station scans, pickup orders, gardener runs). Errors are always logged. Turn off for a quiet log once everything works.";
 
+        internal const string ZoneDropsSection = "General";
+        internal const string ZoneDropsKey = "CollectZoneDrops";
+        internal const bool ZoneDropsDefault = true;
+        internal const string ZoneDropsLabel = "Carrier collects loose drops in its zone";
+        internal const string ZoneDropsDescription =
+            "Besides the products of workerless stations, the zombie also picks up ordinary items lying on the ground in its own zone and puts them into a storage. Off: loose drops are left where they are.";
+
+        internal const string MagnetSection = "General";
+        internal const string MagnetKey = "DropMagnetRange";
+        internal const float MagnetDefault = 0f;
+        internal const string MagnetLabel = "Tech point absorption range";
+        internal const string MagnetDescription =
+            "How close a zombie has to be for tech points lying on the ground to drift to it and be absorbed. 0 (default) uses the same range the game pulls orbs to the player with, so a zombie reaches exactly as far as the player does. A player nearby always keeps his orbs.";
+
         internal static ManualLogSource Log;
         internal static Harmony HarmonyInstance;
 
         // bound by the framework bridge when GK2 Mod Framework is installed, otherwise in Awake
         internal static ConfigEntry<bool> CaretakerTakesTechPoints;
         internal static ConfigEntry<bool> DetailedLog;
+        internal static ConfigEntry<bool> CollectZoneDrops;
+        internal static ConfigEntry<float> DropMagnetRange;
 
         // one place for the mod's chatter: the whole info level can be silenced from the settings
         // (errors keep going out - a broken run must stay visible in the log)
@@ -59,6 +75,9 @@ namespace GK2AutoStationService
                 {
                     CaretakerTakesTechPoints = Config.Bind(TechPointsSection, TechPointsKey, TechPointsDefault, TechPointsDescription);
                     DetailedLog = Config.Bind(LogSection, LogKey, LogDefault, LogDescription);
+                    CollectZoneDrops = Config.Bind(ZoneDropsSection, ZoneDropsKey, ZoneDropsDefault, ZoneDropsDescription);
+                    DropMagnetRange = Config.Bind(MagnetSection, MagnetKey, MagnetDefault,
+                        new ConfigDescription(MagnetDescription, new AcceptableValueRange<float>(0f, 30f)));
                     Log.LogInfo("[ASS] GK2 Mod Framework not found - the settings can be edited in BepInEx/config/com.gk2mod.autostationservice.cfg");
                 }
 
@@ -107,6 +126,19 @@ namespace GK2AutoStationService
                 {
                     HarmonyInstance.Patch(gardenerUpdate, prefix: new HarmonyMethod(typeof(GardenerJobRegistry), nameof(GardenerJobRegistry.GardenerUpdateBehaviourPrefix)));
                     Log.LogInfo("[ASS] patched ZombieWgoData.GardenerUpdateBehaviour");
+                }
+
+                // vanilla caretakers have no "pick a loose drop up from the ground" behaviour (the
+                // drop collectors belong to the player), so the loose drop errand drives them here
+                MethodInfo caretakerUpdate = AccessTools.Method(typeof(ZombieWgoData), "CaretakerUpdateBehaviour");
+                if (caretakerUpdate == null)
+                {
+                    Log.LogError("[ASS] ZombieWgoData.CaretakerUpdateBehaviour not found - caretakers cannot collect loose drops");
+                }
+                else
+                {
+                    HarmonyInstance.Patch(caretakerUpdate, prefix: new HarmonyMethod(typeof(ZoneDropErrand), nameof(ZoneDropErrand.CaretakerUpdateBehaviourPrefix)));
+                    Log.LogInfo("[ASS] patched ZombieWgoData.CaretakerUpdateBehaviour");
                 }
 
                 GameObject host = new GameObject("GK2AutoStationService");
@@ -165,6 +197,8 @@ namespace GK2AutoStationService
         private readonly Dictionary<Guid, float> pickupWaitLogTime = new Dictionary<Guid, float>();
         private readonly Dictionary<Guid, float> noProductLogTime = new Dictionary<Guid, float>();
         private readonly HashSet<string> caretakerZones = new HashSet<string>();
+        // every caretaker by zone, idle or not - the zone drop scan reports who could go for a drop
+        private readonly Dictionary<string, List<ZombieWgoData>> caretakersByZone = new Dictionary<string, List<ZombieWgoData>>();
         // gardeners standing idle in their zone, by zone id - they serve the stations of a zone
         // that has no caretaker at all (the garden zone cannot host a zombie_supplier_station)
         private readonly Dictionary<string, List<ZombieWgoData>> idleGardenersByZone = new Dictionary<string, List<ZombieWgoData>>();
@@ -184,6 +218,9 @@ namespace GK2AutoStationService
                 float dt = Time.unscaledDeltaTime;
                 rescanTimer += dt;
                 serviceTimer += dt;
+
+                // passive, per frame: orbs in reach drift to the worker and are absorbed there
+                OrbMagnet.Tick();
 
                 if (rescanTimer >= RESCAN_INTERVAL)
                 {
@@ -221,6 +258,9 @@ namespace GK2AutoStationService
             {
                 ServiceOrderRegistry.Clear();
                 GardenerJobRegistry.Clear();
+                ZoneDrops.Forget();
+                ZoneDropErrand.Clear();
+                OrbMagnet.Clear();
                 loggedStations.Clear();
                 loggedCandidates.Clear();
                 loggedDiagnostics.Clear();
@@ -321,6 +361,22 @@ namespace GK2AutoStationService
 
             CollectCaretakerZones();
 
+            if (AutoStationServicePlugin.CollectZoneDrops == null || AutoStationServicePlugin.CollectZoneDrops.Value)
+            {
+                try
+                {
+                    // a caretaker serves his own zone; a gardener only steps in where no caretaker can
+                    // be (the garden), so both kinds of zone are reported
+                    HashSet<string> serviceZones = new HashSet<string>(caretakerZones);
+                    serviceZones.UnionWith(gardenerZones);
+                    ZoneDrops.Scan(caretakersByZone, serviceZones);
+                }
+                catch (Exception ex)
+                {
+                    AutoStationServicePlugin.Log?.LogError("[ASS] zone drops scan: " + ex);
+                }
+            }
+
             for (int i = stations.Count - 1; i >= 0; i--)
             {
                 WgoData w = stations[i];
@@ -347,6 +403,7 @@ namespace GK2AutoStationService
         private void CollectCaretakerZones()
         {
             caretakerZones.Clear();
+            caretakersByZone.Clear();
             idleGardenersByZone.Clear();
             gardenerZones.Clear();
             gardenerZoneRefs.Clear();
@@ -367,6 +424,7 @@ namespace GK2AutoStationService
 
             string text = string.Empty;
             HashSet<Guid> gardenersOnScene = new HashSet<Guid>();
+            HashSet<Guid> caretakersOnScene = new HashSet<Guid>();
             for (int i = 0; i < zombieIds.Count; i++)
             {
                 ZombieWgoData zombie = MainGame.ZombieSystemData.GetZombie(zombieIds[i]);
@@ -394,6 +452,16 @@ namespace GK2AutoStationService
                 if (zombie.ZombieType == ZombieType.Caretaker && zone != null)
                 {
                     caretakerZones.Add(zone.id);
+                    caretakersOnScene.Add(zombie.UniqueId.Guid);
+
+                    List<ZombieWgoData> caretakers;
+                    if (!caretakersByZone.TryGetValue(zone.id, out caretakers))
+                    {
+                        caretakers = new List<ZombieWgoData>();
+                        caretakersByZone[zone.id] = caretakers;
+                    }
+
+                    caretakers.Add(zombie);
                 }
                 else if (zombie.ZombieType == ZombieType.Gardener)
                 {
@@ -421,6 +489,8 @@ namespace GK2AutoStationService
             }
 
             GardenerJobRegistry.RemoveGardenersGone(gardenersOnScene);
+            caretakersOnScene.UnionWith(gardenersOnScene);
+            ZoneDropErrand.RemoveWorkersGone(caretakersOnScene);
 
             // the garden orders a gardener could take right now are stamped here, so a waiting
             // station competes with them on age instead of with the vanilla order priority
@@ -1733,8 +1803,55 @@ namespace GK2AutoStationService
             AutoStationServicePlugin.LogInfo($"[ASS] {station.id}: gardener {gardener.UniqueId.Guid} walks over to collect {product.id} x{product.Count} (station is {Vector3.Distance(gardener.Position, station.Position):F1} units away)");
         }
 
+        // a world change drops every job, but a gardener must not keep a product in his hands (vanilla
+        // gardeners only ever deposit seeds and crops) and must not stay in the state borrowed for the
+        // walk - the caretaker errands are released the same way
         internal static void Clear()
         {
+            foreach (KeyValuePair<Guid, Job> pair in jobs)
+            {
+                ZombieWgoData gardener = FindZombie(pair.Key);
+                if (gardener == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    Item carried = gardener.GardenerPortableItem;
+                    if (carried != null && !carried.IsEmpty && carried.Count > 0)
+                    {
+                        AutoStationServicePlugin.LogInfo($"[ASS] gardener {pair.Key}: world changed while collecting - handing over {carried.id} x{carried.Count}");
+
+                        WorldZoneData zone = gardener.WorldZoneData;
+                        if (zone != null)
+                        {
+                            DepositIntoZone(zone, pair.Value.StationId != null ? pair.Value.StationId.Guid : Guid.Empty, carried, gardener.Position);
+                        }
+
+                        if (carried.Count > 0)
+                        {
+                            StorageDeposit.PutOnGround(gardener, carried);
+                        }
+
+                        if (carried.Count <= 0)
+                        {
+                            gardener.GardenerPortableItem = Item.Empty;
+                        }
+                    }
+
+                    if (gardener.GardenerState == ZombieWgoData.ZombieGardenerState.TeleportSeedsFromMultiInventory
+                        && !HasGardenerOrder(gardener))
+                    {
+                        gardener.GardenerState = ZombieWgoData.ZombieGardenerState.OnStation;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AutoStationServicePlugin.Log?.LogError("[ASS] gardener release after a world change: " + ex);
+                }
+            }
+
             jobs.Clear();
             requests.Clear();
             bedWork.Clear();
@@ -1814,7 +1931,22 @@ namespace GK2AutoStationService
         {
             try
             {
+                // an errand already in flight is advanced first: the station hand-over hold below would
+                // otherwise swallow every frame (the garden always has a product waiting), and the errand
+                // would never even reach its own timeout
+                if (ZoneDropErrand.HasErrand(__instance) && ZoneDropErrand.DriveGuarded(__instance))
+                {
+                    return false;
+                }
+
                 if (Drive(__instance))
+                {
+                    return false;
+                }
+
+                // no station work at hand: a loose drop in the garden (the peat that fell out of the
+                // compost pile, for one) is the next thing this gardener can do
+                if (ZoneDropErrand.DriveGuarded(__instance))
                 {
                     return false;
                 }
@@ -1844,6 +1976,14 @@ namespace GK2AutoStationService
 
             if (!jobs.TryGetValue(gardener.UniqueId.Guid, out job))
             {
+                // same rule as the caretaker errands: a borrowed state must never be left behind, or
+                // the vanilla gardener logic runs a state the mod put him in
+                if (gardener.GardenerState == ZombieWgoData.ZombieGardenerState.TeleportSeedsFromMultiInventory
+                    && !HasGardenerOrder(gardener))
+                {
+                    gardener.GardenerState = ZombieWgoData.ZombieGardenerState.OnStation;
+                }
+
                 // a station product is the next work of this zone: stand at the station for the
                 // moment it takes the tick to hand it over instead of taking a newer garden order.
                 // without this the gardener grabs the next bed order the frame he arrives home and
@@ -2192,6 +2332,19 @@ namespace GK2AutoStationService
             }
 
             return null;
+        }
+
+        private static FieldInfo gardenerOrderField;
+
+        internal static bool HasGardenerOrder(ZombieWgoData gardener)
+        {
+            if (gardenerOrderField == null)
+            {
+                gardenerOrderField = AccessTools.Field(typeof(ZombieWgoData), "gardenerExecutingOrder");
+            }
+
+            SGuid order = gardenerOrderField != null ? gardenerOrderField.GetValue(gardener) as SGuid : null;
+            return order != null && !order.IsEmpty;
         }
 
         private static bool ResolveMovement()

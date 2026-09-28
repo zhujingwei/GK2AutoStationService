@@ -174,13 +174,10 @@ If a station never produces anything, first check whether its zone appears in `c
 ## Changelog / 更新日志
 
 ### 1.6.0
-- **Loose drops are collected.** A zombie now picks up ordinary items lying on the ground in its own zone and stores them: the nearest storage that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one; when no chest in the zone can take the item, it goes back on the ground and the zombie returns to its station. New setting `Carrier collects loose drops in its zone` (default on).
-- **A gardener stores what it picks up on the spot**, the way the game's own garden deposit works, so he no longer makes a trip to the chest. A caretaker still walks the pile over and puts it in.
-- **Tech point orbs on the ground go to the zombie.** A worker absorbs an orb lying within reach and a `+1` with the orb icon pops over its head. New setting `Tech point absorption range` (default 0 = exactly the range the game pulls orbs to the player with; a player in range always keeps priority).
-- Big items and anything tied to a world object (logs, corpses) are deliberately left alone.
-- Fixed: a gardener could not walk at all — its walk requests were placed on a navigation graph the garden does not have, and the game drops such a request without a word. Gardeners now walk on the garden graph (the GD point graph), exactly like vanilla, and a walk that is accepted but never starts is retried the other way and logged instead of leaving the zombie standing there.
-- Fixed: an absorbed orb used to blink out of existence when it already lay at the zombie's feet. It now drifts into the zombie first, so the point can be seen going in.
-- The setting labels now say carrier/gardener where both zombies are meant.
+- **Loose drops are collected.** A zombie now picks up ordinary items lying on the ground in its own zone and stores them: the nearest storage that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one; when no chest in the zone can take the item, it goes back on the ground and the zombie returns to its station. Big items and anything tied to a world object (logs, corpses) are left where they are. New setting `Carrier collects loose drops in its zone` (default on).
+- **A gardener stores what it picks up on the spot**, the way the game's own garden deposit works, so it no longer makes a trip to the chest for it. A caretaker still walks the pile over and puts it in.
+- **Tech point orbs on the ground go to the zombie.** A worker absorbs an orb lying within reach and a `+1` with the orb icon appears over its head. New setting `Tech point absorption range` (default 0 = exactly the range the game pulls orbs to the player with; a player in range always keeps priority).
+- The setting labels now name both zombies, since either of them does the same jobs in its own zone.
 
 ### 1.5.1
 - Fixed a station whose craft queue also needs its own output as material — a glass furnace with bottles queued behind the glass. The product detection treated the finished glass as "material the queue still needs", so no pickup order was created and the caretaker never came for it. The product is now taken from the craft that is parked waiting for pickup, whatever the rest of the queue asks for.

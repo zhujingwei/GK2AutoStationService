@@ -1,4 +1,4 @@
-# Nexus 发布文案（Auto Station Service 1.6.0）
+# Nexus 发布文案（Auto Station Service 1.6.1）
 
 下面是可以直接复制粘贴到 Nexus 上传页的内容。上传步骤和检查清单在最下面。
 
@@ -55,7 +55,7 @@ It gives workerless auto stations the vanilla worker treatment:
 [*][b]Stations with an attached zombie are ignored[/b] — those already work the vanilla way.
 [*][b]Conveyor workbenches are ignored[/b] — they run their own loop and push products to their output cell.
 [*][b]Stations that share storage with another object[/b] (workbench placed on top of a chest) are skipped: input and output already go through that shared storage.
-[*][b]The ground gets cleaned up.[/b] A zombie picks up ordinary items lying on the floor of its own zone — what a full chest spat out, or a product that dropped — and stores them: the nearest storage that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one, and when no chest in the zone can take the item it goes back on the ground and the zombie returns to its station. A caretaker walks such a pile over to the chest; a gardener hands it over from where he stands, the way the game's own garden deposit works. Big items and anything the game ties to a world object (logs, corpses) are left where they are.
+[*][b]The ground gets cleaned up.[/b] A zombie picks up ordinary items lying on the floor of its own zone — what a full chest spat out, or a product that dropped — and stores them: the nearest storage that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one, and when no chest in the zone can take the item it goes back on the ground and the zombie returns to its station. A caretaker walks such a pile over to the chest; a gardener hands it over from where he stands, the way the game's own garden deposit works. Big items — the ones the player carries over his head, like logs and supply crates — and anything the game ties to a world object (corpses) are left where they are.
 [*][b]Tech point orbs on the ground go to the zombie.[/b] In vanilla only the player can collect them. Here a worker absorbs an orb lying within its reach and a "+1 <orb icon>" pops over its head; a player standing in range always keeps priority, decided by the same rule the game uses for him.
 [*][b]Four settings[/b] (see below), no keybinds. The mod is active as soon as the plugin loads.
 [/list]
@@ -128,6 +128,9 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 ## Changelog（Nexus 的 Changelog 字段）
 
 ```
+1.6.1
+- Fixed: big items (logs, supply crates and anything else the player carries over his head - the game's "big item" category) were being picked up by a zombie and put into a chest. The drop errand now leaves them on the ground for the player, exactly like the game's own ground pickup does.
+
 1.6.0
 - Loose drops are collected: a zombie picks up ordinary items lying on the ground of its own zone and stores them (nearest storage that already holds the item, otherwise nearest with room). A full chest sends it to the next one; when no chest in the zone can take it, the item goes back on the ground and the zombie returns to its station. Big items and anything tied to a world object (logs, corpses) are left alone. New setting "Carrier collects loose drops in its zone" (default on).
 - A gardener stores what it picks up on the spot, the way the game's own garden deposit works, so it no longer makes a trip to the chest for it; a caretaker still carries the pile over.
@@ -176,7 +179,7 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 
 ## 上传前检查清单
 
-1. **主文件**：上传 `dist/GK2AutoStationService-1.6.0.zip`（内部结构：`BepInEx/plugins/GK2AutoStationService.dll` + `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/zh.json`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.6.0.zip` 之外的任意名，但保持 `.zip`。
+1. **主文件**：上传 `dist/GK2AutoStationService-1.6.1.zip`（内部结构：`BepInEx/plugins/GK2AutoStationService.dll` + `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/zh.json`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.6.1.zip` 之外的任意名，但保持 `.zip`。
 2. **游戏页**：Graveyard Keeper 2（Steam app id 4358690，Nexus 上选游戏时不要选成一代 Graveyard Keeper）。
 3. **License / permissions**：Nexus 必填。建议 `MIT` 或 `All rights reserved + 允许转载/整合`；请自行决定，仓库里目前没有 LICENSE 文件。
 4. **图片**：Nexus 页面首图不是必填但强烈建议（1600×900 或相近 16:9）。需要的话可以让我生成一张标题图/截图版式。
@@ -184,4 +187,4 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 6. **Related mods**：如果之后也发布 Caretaker Priority，两边互相填 Related；本 mod 不依赖它，单独可用。
 7. **Source 字段**：填 `https://github.com/zhujingwei/GK2AutoStationService`（Description 里也写了）。
 8. **首次发布**：Nexus 新 mod 需要等待审核/首页曝光（普通 mod 立即发布，仅成人/敏感内容才审核）；上传后建议在 Description 里保留排查用的日志关键字，减少问答量。
-9. **GitHub 侧可选**：给 `v1.6.0` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.6.0.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。
+9. **GitHub 侧可选**：给 `v1.6.1` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.6.1.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。

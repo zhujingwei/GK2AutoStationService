@@ -16,7 +16,7 @@ namespace GK2AutoStationService
     public class AutoStationServicePlugin : BaseUnityPlugin
     {
         internal const string ModGuid = "com.gk2mod.autostationservice";
-        internal const string ModVersion = "1.6.0";
+        internal const string ModVersion = "1.6.1";
         internal const string TechPointsSection = "General";
         internal const string TechPointsKey = "CaretakerTakesTechPoints";
         internal const bool TechPointsDefault = true;

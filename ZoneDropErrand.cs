@@ -1001,6 +1001,14 @@ namespace GK2AutoStationService
                 return false;
             }
 
+            // an item the player has to carry over his head (a log, a supply crate) never goes into a
+            // backpack or a chest: the game's own DropCollector refuses these drops, so the errand does
+            // too and leaves them for the player
+            if (StorageDeposit.IsBigItem(drop.Item))
+            {
+                return false;
+            }
+
             if (!IsInZone(zone, drop.Position) || !MayCollectHere(worker, zone))
             {
                 return false;

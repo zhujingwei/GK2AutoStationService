@@ -108,6 +108,23 @@ namespace GK2AutoStationService
             return fits;
         }
 
+        // a "big" item is one the player carries over his head instead of pocketing (logs, supply
+        // crates): the game's own DropCollector refuses exactly these, and BigDropInteractionHandler
+        // picks them up overhead. A chest is not where they belong, so the drop errand must skip them
+        // too - a zombie that picked one up would stuff it into a storage.
+        internal static bool IsBigItem(Item item)
+        {
+            try
+            {
+                ItemDef def = item != null ? item.Definition : null;
+                return def != null && def.itemSize == ItemSize.Big;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         // the per-item limit for one carried stack: CaretakerPortableItem is a single Item, so a
         // trip can only move one stack of one item id
         internal static int StackLimit(string itemId)

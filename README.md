@@ -5,7 +5,7 @@ Caretaker zombies pick up the finished products from **auto-crafting stations th
 搬运工僵尸会去**没插僵尸的自动工作站**（熔炉、蒸馏立方体等）取走成品，让工作站能继续生产，而不是被成品堵死；顺手还会把**本区域地上的掉落**捡进仓库、把地上的**科技点球**收掉。
 
 - Plugin GUID: `com.gk2mod.autostationservice`
-- Version: 1.6.0
+- Version: 1.6.1
 - Requires: BepInEx 5.4.x (x64) for Graveyard Keeper 2
 - Optional: [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) — adds this mod's settings to its Mods menu
 - Single file: `BepInEx/plugins/GK2AutoStationService.dll` (plus a translation file under the framework's folder, see below)
@@ -39,7 +39,7 @@ This mod closes that gap with the vanilla worker model:
 - **Stations with an attached zombie are ignored** — those already work the vanilla way.
 - **Conveyor workbenches are ignored** — they run their own loop and push products to their output cell.
 - **Stations that share storage with another object** (workbench placed on top of a chest) are skipped: input and output already go through that shared storage.
-- **The ground gets cleaned up too.** A zombie also picks up ordinary items lying on the floor of its own zone — what a full chest spat out, or a product that dropped — and puts them into a storage: the nearest one that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one, and when no chest in the zone can take it the item goes back on the ground and the zombie returns to its station. Big items and anything the game ties to a world object (logs, corpses) are left where they are. A caretaker carries such a pile to the chest; a gardener hands it over from where it stands, the way the game's own garden deposit works, so he never makes a trip for it.
+- **The ground gets cleaned up too.** A zombie also picks up ordinary items lying on the floor of its own zone — what a full chest spat out, or a product that dropped — and puts them into a storage: the nearest one that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one, and when no chest in the zone can take it the item goes back on the ground and the zombie returns to its station. Big items — the ones the player carries over his head, like logs and supply crates — and anything the game ties to a world object (corpses) are left where they are. A caretaker carries such a pile to the chest; a gardener hands it over from where it stands, the way the game's own garden deposit works, so he never makes a trip for it.
 - **Tech point orbs on the ground go to the zombie now.** In vanilla only the player can collect them; here a worker absorbs an orb lying within its reach and a "+1 <orb icon>" pops over its head. A player standing in range always keeps priority, decided by the same rule the game uses for him.
 - **Four settings** (see below); no keybinds, the mod is active as soon as the plugin loads.
 
@@ -96,9 +96,9 @@ Vortex: install the archive as-is; it contains the `BepInEx/plugins/` folder str
 3. Make sure there is a **caretaker zombie** in the same zone as the station — or, in a zone that cannot host one (the garden), an **idle gardener**.
 4. The station works, the zombie comes for the product, and the queue continues on its own.
 
-Loose drops need no setup: whatever ends up on the floor of a zone that has one of these zombies is picked up on its own (see the setting above). Big items and items tied to a world object are never touched.
+Loose drops need no setup: whatever ends up on the floor of a zone that has one of these zombies is picked up on its own (see the setting above). Big items — the ones carried over the head (logs, supply crates) — and items tied to a world object are never touched.
 
-地上的掉落不需要额外设置：那个区域里有搬运工或园丁，地上的普通掉落就会被自动捡走（见上面的设置）。大件和与世界物件绑定的物品不会动。
+地上的掉落不需要额外设置：那个区域里有搬运工或园丁，地上的普通掉落就会被自动捡走（见上面的设置）。**大件（原木、补给箱等举在头顶、不能收进背包的物品）**和与世界物件绑定的物品不会动，留在地上给玩家自己处理。
 
 Notes / 注意：
 
@@ -148,7 +148,8 @@ Useful lines:
 | `caretaker <guid>: order <guid> points at <guid> ... - order dropped` | A caretaker found an order whose target no longer exists; it was dropped instead of crashing the caretaker |
 | `zone drop scan: N loose drop(s) in M zone(s) the mod watches (turn on 'Detailed log' for one line per drop)` | Printed when the number of loose drops changes — the line that says whether the drop feature sees anything at all |
 | `loose drop in <zone>: <item> xN -> <chest> [guid] (distance N)` | With `Detailed log` on: one line per drop, naming the storage it would go into |
-| `loose drop in <zone>: <item> xN - big or wgo-linked item, skipped for now` | Logs, corpses and other world-linked items are deliberately left alone |
+| `loose drop in <zone>: <item> xN - big item carried over the head, left for the player` | An item the player holds overhead (a log, a supply crate) — never pocketed or stored |
+| `loose drop in <zone>: <item> xN - wgo-linked item, left for the player` | Logs, corpses and other world-linked items are deliberately left alone |
 | `<type> <guid>: going for loose drop <item> xN [guid] in <zone> (... walking to (x, z) on the GD point graph\|zone graph)` | A zombie took a drop as its next errand |
 | `<type> <guid>: picked up <item> xN (carrying N)` | It reached the drop and took it (as much as fits in one stack) |
 | `put <item> xN into <chest> [guid] on the spot` | A gardener stored the item from where he stood — he does not walk to the chest |
@@ -172,6 +173,9 @@ If a station never produces anything, first check whether its zone appears in `c
 - Verified alongside BepInEx 5 based mods (framework mods, inventory mods, time-of-day mods).
 
 ## Changelog / 更新日志
+
+### 1.6.1
+- **Big items are no longer picked up.** Logs, supply crates and every other item the player carries over his head (the game's `ItemSize.Big` category) were being taken by a zombie and stuffed into a chest. The drop errand now skips them, exactly like the game's own ground pickup does, so they stay on the ground for the player. The zone drop scan names them (`big item carried over the head, left for the player`) instead of lumping them in with the world-linked items.
 
 ### 1.6.0
 - **Loose drops are collected.** A zombie now picks up ordinary items lying on the ground in its own zone and stores them: the nearest storage that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one; when no chest in the zone can take the item, it goes back on the ground and the zombie returns to its station. Big items and anything tied to a world object (logs, corpses) are left where they are. New setting `Carrier collects loose drops in its zone` (default on).

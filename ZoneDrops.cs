@@ -98,11 +98,13 @@ namespace GK2AutoStationService
 
             zonesWithDrops.Add(zone.id);
 
-            // a drop linked to a wgo (logs, bodies) is not collectable by walking over it and needs
-            // a dedicated storage, so it is left out of the first version
-            if (drop.DropType == DropType.WgoData)
+            // a drop linked to a wgo (logs, bodies) needs a dedicated storage, and a big item (a log, a
+            // supply crate) is the kind the player carries over his head rather than pocketing: neither
+            // goes into a chest, so both are left on the ground for the player
+            if (drop.DropType == DropType.WgoData || StorageDeposit.IsBigItem(drop.Item))
             {
-                Log($"{drop.UniqueId.Guid}|big", $"[ASS] loose drop in {zone.id}: {describe(drop)} - big or wgo-linked item, skipped for now");
+                bool big = drop.DropType != DropType.WgoData;
+                Log($"{drop.UniqueId.Guid}|{(big ? "big" : "wgo")}", $"[ASS] loose drop in {zone.id}: {describe(drop)} - {(big ? "big item carried over the head" : "wgo-linked item")}, left for the player");
                 return true;
             }
 

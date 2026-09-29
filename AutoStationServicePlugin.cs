@@ -16,7 +16,7 @@ namespace GK2AutoStationService
     public class AutoStationServicePlugin : BaseUnityPlugin
     {
         internal const string ModGuid = "com.gk2mod.autostationservice";
-        internal const string ModVersion = "1.6.1";
+        internal const string ModVersion = "1.6.2";
         internal const string TechPointsSection = "General";
         internal const string TechPointsKey = "CaretakerTakesTechPoints";
         internal const bool TechPointsDefault = true;
@@ -473,7 +473,8 @@ namespace GK2AutoStationService
                         gardenerZoneRefs[zone.id] = zone;
 
                         if (zombie.GardenerState == ZombieWgoData.ZombieGardenerState.OnStation
-                            && !GardenerJobRegistry.HasJob(zombie.UniqueId.Guid))
+                            && !GardenerJobRegistry.HasJob(zombie.UniqueId.Guid)
+                            && !GardenerJobRegistry.IsBusyElsewhere(zombie))
                         {
                             List<ZombieWgoData> idle;
                             if (!idleGardenersByZone.TryGetValue(zone.id, out idle))
@@ -1987,10 +1988,14 @@ namespace GK2AutoStationService
                 // a station product is the next work of this zone: stand at the station for the
                 // moment it takes the tick to hand it over instead of taking a newer garden order.
                 // without this the gardener grabs the next bed order the frame he arrives home and
-                // the waiting station is never served
+                // the waiting station is never served. the hold is zone-wide and reads the state
+                // alone, so it has to step aside for a gardener somebody else is using: freezing his
+                // walk would break that route, and the station loses nothing by waiting for a
+                // gardener who is really free
                 WorldZoneData idleZone = gardener.WorldZoneData;
                 return gardener.GardenerState == ZombieWgoData.ZombieGardenerState.OnStation
-                    && HasHold(idleZone != null ? idleZone.id : null);
+                    && HasHold(idleZone != null ? idleZone.id : null)
+                    && !IsBusyElsewhere(gardener);
             }
 
             WgoData station;
@@ -2265,8 +2270,16 @@ namespace GK2AutoStationService
                 AutoStationServicePlugin.LogInfo($"[ASS] {station.id}: gardener delivered {job.ItemId} x{delivered} to the zone storage");
             }
 
-            // back to the vanilla gardener: he walks home or takes the next garden order
-            gardener.GardenerState = ZombieWgoData.ZombieGardenerState.OnStation;
+            // back to the vanilla gardener, in the vanilla way: GardenerTryMoveToStation walks him
+            // home. Writing OnStation where he stands is a state vanilla never produces - that branch
+            // only looks for a new order and never walks - so the gardener would stand at the station
+            // for good: the station keeps handing out nothing, the hold it refreshes every tick keeps
+            // the vanilla bed orders away from him, and whoever else drives gardeners (Auto Harvest
+            // Fruit/Honey steer them hop by hop) never sees him back at his station either. Walking
+            // home also reopens the vanilla OnStation branch, so the next order - a garden bed's or a
+            // mod's - is picked up again
+            AutoStationServicePlugin.LogInfo($"[ASS] {station.id}: gardener {job.GardenerId.Guid} walks home from the station");
+            ZoneDropErrand.GoHome(gardener);
         }
 
         private static void Remove(Job job, string reason, bool failure = false)
@@ -2306,7 +2319,9 @@ namespace GK2AutoStationService
                     }
                 }
 
-                gardener.GardenerState = ZombieWgoData.ZombieGardenerState.OnStation;
+                // same as Finish: the gardener is handed back to vanilla and walks home from wherever
+                // he was stopped, instead of standing there in a state that never walks
+                ZoneDropErrand.GoHome(gardener);
             }
             catch (Exception ex)
             {
@@ -2345,6 +2360,25 @@ namespace GK2AutoStationService
 
             SGuid order = gardenerOrderField != null ? gardenerOrderField.GetValue(gardener) as SGuid : null;
             return order != null && !order.IsEmpty;
+        }
+
+        // a gardener somebody else is already using is not idle, even though his state reads
+        // OnStation: he may be walking to a garden bed order of his own, or - with a mod like Auto
+        // Harvest Fruit/Honey - hop by hop along a route only that mod knows how to finish, which it
+        // drives itself while the vanilla state machine is not involved at all. Taking him out of
+        // such a walk strands both sides: the other mod's route never resumes (it is waiting for its
+        // own next hop) and nothing afterwards walks him home either. His state cannot tell those
+        // two apart from an idle gardener, so the order in his hand and the walk under his feet are
+        // what this looks at
+        internal static bool IsBusyElsewhere(ZombieWgoData gardener)
+        {
+            if (HasGardenerOrder(gardener))
+            {
+                return true;
+            }
+
+            MovementComponent movement = gardener.MovementComponent;
+            return movement != null && movement.IsMoving;
         }
 
         private static bool ResolveMovement()

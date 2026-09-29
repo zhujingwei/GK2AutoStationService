@@ -730,8 +730,10 @@ namespace GK2AutoStationService
 
             if (IsGardener(worker))
             {
+                // the same test the station job makes before it takes a gardener: an order in his
+                // hand or a walk under his feet belongs to someone else, even if he reads OnStation
                 return worker.GardenerState == ZombieWgoData.ZombieGardenerState.OnStation
-                    && !GardenerJobRegistry.HasGardenerOrder(worker);
+                    && !GardenerJobRegistry.IsBusyElsewhere(worker);
             }
 
             return false;
@@ -806,7 +808,9 @@ namespace GK2AutoStationService
             }
         }
 
-        private static void GoHome(ZombieWgoData worker)
+        // vanilla ends every piece of garden work by walking home, and the station job in
+        // GardenerJobRegistry borrows this too: where a worker stands is not where he lives
+        internal static void GoHome(ZombieWgoData worker)
         {
             if (!ResolveMoveHelpers())
             {

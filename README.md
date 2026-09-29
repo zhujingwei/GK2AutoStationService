@@ -5,7 +5,7 @@ Caretaker zombies pick up the finished products from **auto-crafting stations th
 搬运工僵尸会去**没插僵尸的自动工作站**（熔炉、蒸馏立方体等）取走成品，让工作站能继续生产，而不是被成品堵死；顺手还会把**本区域地上的掉落**捡进仓库、把地上的**科技点球**收掉。
 
 - Plugin GUID: `com.gk2mod.autostationservice`
-- Version: 1.6.1
+- Version: 1.6.2
 - Requires: BepInEx 5.4.x (x64) for Graveyard Keeper 2
 - Optional: [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) — adds this mod's settings to its Mods menu
 - Single file: `BepInEx/plugins/GK2AutoStationService.dll` (plus a translation file under the framework's folder, see below)
@@ -33,7 +33,8 @@ This mod closes that gap with the vanilla worker model:
 - **It never does the work for you.** The mod does not fast-forward crafts. Nothing happens at a station until a zombie is available to carry the product away, so the station can never outrun the zombie that serves it.
 - **Zone-bound.** Orders can only be taken by a caretaker standing in the same zone, so a station in a zone without a caretaker is left alone (it also will not produce output on its own). Put a caretaker in that zone to have the station served.
 - **The garden gets a gardener instead.** A garden zone cannot host a zombie at all: the only zombie station the game offers (`zombie_supplier_station`, where caretakers live) cannot be built there. So when a zone has no caretaker but has a gardener zombie, the gardener walks to the station, takes the product and puts it into the zone storages — the same job, done by the zombie that zone actually has.
-- **The gardener works by waiting time.** Its carrying jobs are queued against the garden work it could do instead (planting, harvesting): whatever has been waiting longest goes first, and the mod gives it the station hand-over the moment it is free instead of letting the game send it to a newer garden order. It is never interrupted in the middle of a garden task.
+- **The gardener works by waiting time.** Its carrying jobs are queued against the garden work it could do instead (planting, harvesting): whatever has been waiting longest goes first, and the mod gives it the station hand-over the moment it is free instead of letting the game send it to a newer garden order. It is never interrupted in the middle of a garden task, and after a hand-over it walks home the vanilla way (`GardenerTryMoveToStation`) and takes the next order from there.
+- **A gardener someone else is already using is left alone.** Its state cannot show whether it is idle or on its way somewhere — a mod that walks a gardener itself (Auto Harvest Fruit/Honey do) keeps it in `OnStation` the whole time — so the mod also looks at the order in its hand and at whether it is walking, and neither the hand-over nor the loose drop errand takes it from under that other job.
 - **Storage choice follows the vanilla caretaker rule.** The nearest storage that already holds the item, otherwise the nearest one with room. The station itself never counts (the product would go straight back in).
 - **No material delivery needed.** A workerless station already pulls ingredients straight out of the zone's storages by itself (that is the vanilla multi-inventory for work objects), so the carrier only carries products out. The mod does not create delivery orders.
 - **Stations with an attached zombie are ignored** — those already work the vanilla way.
@@ -137,6 +138,7 @@ Useful lines:
 | `<station>: gardener <guid> reached the station (distance N)` | It got close enough and stops there |
 | `<station>: gardener <guid> took <item> xN at the station (distance N)` | The product left the station; the queue moves on |
 | `<station>: gardener <guid> delivered <item> xN to the zone storage` | The product reached the zone storages |
+| `<station>: gardener <guid> walks home from the station` | The hand-over is done and he walks back to his own station; the next order is picked up there. If this line is missing, the reflection into `GardenerTryMoveToStation` failed (an error follows) and the gardener was released where he stood instead |
 | `<item> xN goes into <storage.id> [guid] (distance N from the station)` | Which storage was picked, and how far it is |
 | `the gardener cannot reach this station` | Pathing failed a few times; the station is left to the player |
 | `<station>: shares storage with <id> [...] - products already go there, skipping` | The station forwards its storage, so it is skipped |
@@ -171,8 +173,15 @@ If a station never produces anything, first check whether its zone appears in `c
 - [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) (Nexus mod 42) is optional: when installed, the mod registers a page with its settings in the framework's Mods menu. The framework is only a soft dependency — the mod loads and works without it, with the settings in its own config file.
 - Load order is irrelevant; no other mod is required.
 - Verified alongside BepInEx 5 based mods (framework mods, inventory mods, time-of-day mods).
+- **Auto Harvest Fruit / Auto Harvest Honey (and any mod that drives a gardener itself):** a gardener who holds a garden order, or who is walking, is left to that other job — neither the station hand-over nor the loose drop errand takes him, and the station's short "wait at the station" hold steps aside for him. Both mods can therefore share one gardener. This was not true before 1.6.2, and the two mods could strand each other: this mod took the gardener out of the fruit/honey route mid-walk, and because it did not walk him home afterwards he stayed at the station for good — with the product icon still over his head if he was still carrying one.
+
+  和 Auto Harvest Fruit / Auto Harvest Honey（以及任何自己驱动园丁的 mod）同用：**手里有花园订单、或者正在走路的园丁不会被本 mod 抢走**，工作站那点「原地等交接」的暂留也会为他让路，两个 mod 可以共用一个园丁。1.6.2 之前不是这样——本 mod 会在半路把园丁从果实/蜂蜜路线上夺走，而交接完又不送他回家，他就永远杵在工作站前（手上还拿着东西的话，头顶那个图标也一直挂着）。
 
 ## Changelog / 更新日志
+
+### 1.6.2
+- **The gardener walks home after a hand-over.** The mod used to put him into `OnStation` where he stood — a state the game never produces by itself, whose branch only looks for a new order and never walks. So after taking a product (the peat out of a compost pile, for one) he stood at that station for good: the station had nothing left to hand him, the mod's short "wait at the station" hold kept the vanilla garden orders away from him, and nothing else could reach him either. The hand-over now ends with the game's own `GardenerTryMoveToStation`, exactly like every vanilla garden task does, so he walks back to his station and takes the next order there — a garden bed's or another mod's.
+- **A gardener another mod is using is no longer taken.** A mod that drives a gardener itself — Auto Harvest Fruit and Auto Harvest Honey do, hop by hop along their own routes — leaves it in `OnStation` the whole time, which looked exactly like an idle gardener. The mod now also checks the order in his hand and whether he is walking, and the station's hold steps aside for him too. Fixes the freeze that pairing the two mods used to cause (a gardener stranded in front of a composter with the peat icon still over his head).
 
 ### 1.6.1
 - **Big items are no longer picked up.** Logs, supply crates and every other item the player carries over his head (the game's `ItemSize.Big` category) were being taken by a zombie and stuffed into a chest. The drop errand now skips them, exactly like the game's own ground pickup does, so they stay on the ground for the player. The zone drop scan names them (`big item carried over the head, left for the player`) instead of lumping them in with the world-linked items.

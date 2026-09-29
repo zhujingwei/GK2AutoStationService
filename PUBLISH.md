@@ -56,7 +56,7 @@ It gives workerless auto stations the vanilla worker treatment:
 [*][b]Stations with an attached zombie are ignored[/b] — those already work the vanilla way.
 [*][b]Conveyor workbenches are ignored[/b] — they run their own loop and push products to their output cell.
 [*][b]Stations that share storage with another object[/b] (workbench placed on top of a chest) are skipped: input and output already go through that shared storage.
-[*][b]The ground gets cleaned up.[/b] A zombie picks up ordinary items lying on the floor of its own zone — what a full chest spat out, or a product that dropped — and stores them: the nearest storage that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one, and when no chest in the zone can take the item it goes back on the ground and the zombie returns to its station. A caretaker walks such a pile over to the chest; a gardener hands it over from where he stands, the way the game's own garden deposit works. Big items — the ones the player carries over his head, like logs and supply crates — and anything the game ties to a world object (corpses) are left where they are.
+[*][b]The ground gets cleaned up.[/b] A zombie picks up ordinary items lying on the floor of its own zone — what a full chest spat out, or a product that dropped — and stores them: the nearest storage that already holds that item, otherwise the nearest one with room. A full chest sends it to the next one, and when no chest in the zone can take the item it goes back on the ground and the zombie returns to its station. Only items that have actually come to rest are taken: a drop a station has just produced is waited out, the same way the game waits before it lets anyone pick it up. A caretaker walks such a pile over to the chest; a gardener hands it over from where he stands, the way the game's own garden deposit works. Big items — the ones the player carries over his head, like logs and supply crates — and anything the game ties to a world object (corpses) are left where they are.
 [*][b]Tech point orbs on the ground go to the zombie.[/b] In vanilla only the player can collect them. Here a worker absorbs an orb lying within its reach and a "+1 <orb icon>" pops over its head; a player standing in range always keeps priority, decided by the same rule the game uses for him.
 [*][b]Four settings[/b] (see below), no keybinds. The mod is active as soon as the plugin loads.
 [/list]
@@ -110,7 +110,7 @@ Everything from this mod is logged to [b]BepInEx/LogOutput.log[/b] with the pref
 [*][i]the station cannot store its output[/i] — the station's storage is full, nothing was produced
 [*][i]the gardener cannot reach this station[/i] — pathing failed a few times, the station is left to the player
 [*][i]... took the tech points (red r, green g, blue b)[/i] — the carrier collected the craft's tech points (setting on)
-[*][i]zone drop scan: N loose drop(s) in M zone(s) the mod watches[/i] — the line that says the drop feature sees something at all
+[*][i]zone drop scan: N loose drop(s) in M zone(s) the mod watches[/i] — the line that says the drop feature sees something at all (only drops resting in the world are counted)
 [*][i]going for loose drop item xN [...] in zone[/i] / [i]picked up item xN[/i] / [i]put item xN into <storage> on the spot[/i] — a zombie collecting a loose drop, and storing it
 [*][i]no chest can take item xN in zone - putting it back on the ground[/i] — no storage in that zone can take it, so it is dropped again
 [*][i]absorbed tech point orb tech_red[/i] — an orb on the ground went to the zombie
@@ -134,6 +134,8 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 ```
 1.6.2
 - Fixed: after a gardener had carried a station's product away (the peat out of a compost pile, for one) he stayed in front of that station for good, with the product icon still over his head if he had not been able to put everything down. He is now sent home the vanilla way (the game's own "walk back to your station" call, the same one every vanilla garden task ends with) and takes the next order there.
+- Fixed: a drop a station had only just produced could be picked up by a zombie before it had landed. The game holds every drop back for a moment after it pops out and refuses it to the player until then; the errand now waits the same delay out, so nothing is pulled out of the air the instant a craft finishes.
+- Fixed: the mod also read the drops queued for a scene that is not loaded yet. A drop that has never hit the ground is not a drop, so only the drops lying in the world are taken now.
 - Fixed: a gardener that another mod is driving - Auto Harvest Fruit and Auto Harvest Honey steer their gardener hop by hop along routes of their own, and its idle state never changes while they do - was taken by this mod out of that route mid-walk, and neither mod could recover it. The mod now leaves a gardener who holds a garden order, or who is walking, to that other job, and its short "wait at the station" hold steps aside for him too.
 
 1.6.1

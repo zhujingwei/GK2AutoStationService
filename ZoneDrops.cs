@@ -7,9 +7,9 @@ namespace GK2AutoStationService
     // Read-only view of the loose drops lying in a caretaker's zone.
     //
     // This is the detection half of "the caretaker also collects the drops of its own zone": it
-    // walks the scene drop lists, decides which zone each drop belongs to (by the zone rectangle,
-    // the way the game itself does it), and works out which chest would take the item. Nothing is
-    // picked up or moved here - the errand that does that is ZoneDropErrand.
+    // walks the drops a scene has lying in the world, decides which zone each drop belongs to (by the
+    // zone rectangle, the way the game itself does it), and works out which chest would take the item.
+    // Nothing is picked up or moved here - the errand that does that is ZoneDropErrand.
     internal static class ZoneDrops
     {
         // one line per distinct (drop, chest) pair per world
@@ -44,8 +44,12 @@ namespace GK2AutoStationService
                     continue;
                 }
 
+                // droppedItems only: GameSceneData keeps a second list, queuedDrops, for drops whose
+                // scene was not loaded when they were created (DropSystem.DropItemInternal picks that
+                // list, and GameSceneData.ProcessQueuedDrops moves them into the world at scene load).
+                // Those are not on the ground - no view, no spot to walk to, nothing the player could
+                // see - and counting them would describe the zone as having drops it does not have
                 dropCount += ScanList(scene, scene.droppedItems, caretakerZones, zonesWithDrops);
-                dropCount += ScanList(scene, scene.queuedDrops, caretakerZones, zonesWithDrops);
             }
 
             // always printed, whatever the log setting says: it is the only sign that the zone drop
@@ -92,6 +96,15 @@ namespace GK2AutoStationService
 
             WorldZoneData zone = FindZone(scene, drop.Position);
             if (zone == null || !caretakerZones.Contains(zone.id))
+            {
+                return false;
+            }
+
+            // a drop that has only just popped out of a station is still on its way down and nobody may
+            // take it yet (the game's own DropCollector refuses it for a moment), so it is not counted
+            // and gets no line: whatever is true of it is true for a moment only, and the one line the
+            // dedupe would ever print for that drop would be the wrong one
+            if (!ZoneDropErrand.IsLanded(drop))
             {
                 return false;
             }

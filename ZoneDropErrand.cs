@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using BepInEx.Logging;
 using HarmonyLib;
+using LazyBearTechnology;
 using Pathfinding;
 using UnityEngine;
 
@@ -1005,6 +1006,16 @@ namespace GK2AutoStationService
                 return false;
             }
 
+            // the game holds a drop back for a moment after it pops out of a station - DropView.SpawnDrop
+            // starts a collect delay and DropCollector.CanCollectDrop refuses the drop until it is over,
+            // so even the player cannot pick it up yet. An item that is still on its way down is not lying
+            // there, and a worker that walked off with it would take it out of the air the moment the
+            // craft ends, so the errand waits the same delay out
+            if (!IsLanded(drop))
+            {
+                return false;
+            }
+
             // an item the player has to carry over his head (a log, a supply crate) never goes into a
             // backpack or a chest: the game's own DropCollector refuses these drops, so the errand does
             // too and leaves them for the player
@@ -1025,6 +1036,58 @@ namespace GK2AutoStationService
 
             int nonChestAccepts;
             return StorageDeposit.PickChest(zone, drop.Item, worker.Position, null, out nonChestAccepts) != null;
+        }
+
+        // whether a drop has come to rest and may be taken by anyone. The drop list says nothing about
+        // that: DropData is written the moment the item is dropped, while the view that plays the fall
+        // and holds the collider only exists once the item is in the world. The view is therefore what
+        // gets asked, and only a view that answers "still collecting delayed" or "already flying to a
+        // collector" holds the errand back - a drop whose view cannot be found at all counts as landed,
+        // so a lookup that fails can never park an item on the ground for good
+        internal static bool IsLanded(DropData drop)
+        {
+            DropView view = FindView(drop);
+            return view == null || (!view.IsCollectDelayed && !view.IsTimedCollecting);
+        }
+
+        // the views live on the loaded scenes, one cache per scene, keyed by the item's unique id - the
+        // same lookup DropSystem does for its own FindDropView
+        private static DropView FindView(DropData drop)
+        {
+            if (drop == null || drop.Item == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                List<GameScene> scenes = LazySingleton<GameSceneManager>.Instance.LoadedGameScenes;
+                if (scenes == null)
+                {
+                    return null;
+                }
+
+                for (int i = 0; i < scenes.Count; i++)
+                {
+                    GameScene scene = scenes[i];
+                    if (scene == null || scene.Id != drop.WorldId)
+                    {
+                        continue;
+                    }
+
+                    DropView view;
+                    if (scene.TryGetDropView(drop.Item, out view))
+                    {
+                        return view;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // a scene that is still starting or already going away says nothing about the drop
+            }
+
+            return null;
         }
 
         // both settings have to be on for the mod to go for tech points lying around: the loose drop
@@ -1094,24 +1157,20 @@ namespace GK2AutoStationService
             return zone.wholeZoneRect.Contains(new Vector2(position.x, position.z));
         }
 
+        // only the drops that are actually lying in the world. GameSceneData keeps a second list,
+        // queuedDrops, and DropSystem.DropItemInternal puts a drop there - instead of into the world -
+        // whenever its scene is not loaded yet; GameSceneData.ProcessQueuedDrops turns those into real
+        // drops later, when the scene loads. A queued drop has no view, no spot anyone could walk to and
+        // nothing the player could see, so it is none of the errand's business: going through that list
+        // only lets a worker take an item out of the queue before it ever hits the ground
         private static List<DropData> DropsOf(WorldZoneData zone)
         {
             List<DropData> result = new List<DropData>();
 
             GameSceneData scene = SceneOf(zone);
-            if (scene == null)
-            {
-                return result;
-            }
-
-            if (scene.droppedItems != null)
+            if (scene != null && scene.droppedItems != null)
             {
                 result.AddRange(scene.droppedItems);
-            }
-
-            if (scene.queuedDrops != null)
-            {
-                result.AddRange(scene.queuedDrops);
             }
 
             return result;

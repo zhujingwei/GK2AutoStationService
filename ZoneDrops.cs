@@ -7,9 +7,10 @@ namespace GK2AutoStationService
     // Read-only view of the loose drops lying in a caretaker's zone.
     //
     // This is the detection half of "the caretaker also collects the drops of its own zone": it
-    // walks the drops a scene has lying in the world, decides which zone each drop belongs to (by the
-    // zone rectangle, the way the game itself does it), and works out which chest would take the item.
-    // Nothing is picked up or moved here - the errand that does that is ZoneDropErrand.
+    // walks the drops a scene holds - the ones lying in the world and the ones still queued for a
+    // scene that is not loaded (see ZoneDropErrand.DropsOf) - decides which zone each drop belongs to
+    // (by the zone rectangle, the way the game itself does it), and works out which chest would take
+    // the item. Nothing is picked up or moved here - the errand that does that is ZoneDropErrand.
     internal static class ZoneDrops
     {
         // one line per distinct (drop, chest) pair per world
@@ -44,12 +45,12 @@ namespace GK2AutoStationService
                     continue;
                 }
 
-                // droppedItems only: GameSceneData keeps a second list, queuedDrops, for drops whose
-                // scene was not loaded when they were created (DropSystem.DropItemInternal picks that
-                // list, and GameSceneData.ProcessQueuedDrops moves them into the world at scene load).
-                // Those are not on the ground - no view, no spot to walk to, nothing the player could
-                // see - and counting them would describe the zone as having drops it does not have
+                // both of the lists a scene keeps, the way the errand reads them: droppedItems is what
+                // lies in the world and queuedDrops is what waits for a scene that is not loaded. The
+                // errand goes through both, so counting only one would make this line disagree with
+                // what the feature actually sees
                 dropCount += ScanList(scene, scene.droppedItems, caretakerZones, zonesWithDrops);
+                dropCount += ScanList(scene, scene.queuedDrops, caretakerZones, zonesWithDrops);
             }
 
             // always printed, whatever the log setting says: it is the only sign that the zone drop

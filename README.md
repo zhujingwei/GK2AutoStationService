@@ -5,7 +5,7 @@ Caretaker zombies pick up the finished products from **auto-crafting stations th
 搬运工僵尸会去**没插僵尸的自动工作站**（熔炉、蒸馏立方体等）取走成品，让工作站能继续生产，而不是被成品堵死；顺手还会把**本区域地上的掉落**捡进仓库、把地上的**科技点球**收掉。
 
 - Plugin GUID: `com.gk2mod.autostationservice`
-- Version: 1.6.2
+- Version: 1.6.3
 - Requires: BepInEx 5.4.x (x64) for Graveyard Keeper 2
 - Optional: [GK2 Mod Framework](https://www.nexusmods.com/graveyardkeeper2/mods/42) — adds this mod's settings to its Mods menu
 - Single file: `BepInEx/plugins/GK2AutoStationService.dll` (plus a translation file under the framework's folder, see below)
@@ -60,9 +60,9 @@ An auto craft stores its tech points in the station, and they are handed out whe
 
 #### 2. Loose drops / 地面掉落 — `Carrier collects loose drops in its zone` (default **on**)
 
-Items lying on the ground of a zone that has a caretaker or a gardener are picked up and stored, as described above. Only things that are really lying there count: a drop a station has just produced is left until it has come to rest (the game holds every drop back for a moment after it pops out, and refuses it to the player as well until then), and a drop that is still waiting for its scene to load is not on the ground at all. Turn it off and the mod leaves the floor alone (the station service keeps working).
+Items lying on the ground of a zone that has a caretaker or a gardener are picked up and stored, as described above. Only things that are really lying there count: a drop a station has just produced is left until it has come to rest (the game holds every drop back for a moment after it pops out, and refuses it to the player as well until then). Turn it off and the mod leaves the floor alone (the station service keeps working).
 
-开启时（默认）搬运工/园丁会把本区域地上的普通掉落捡进仓库（见上文）。只算**真正躺在地上**的东西：工作站刚产出的掉落会先放着，等它停稳再说（原版对刚弹出的掉落有同样的短暂延迟，延迟里连玩家都捡不起来）；还在排队等场景加载的掉落根本不算在地上。关掉后 mod 不再动地上的东西，工作站服务照旧。
+开启时（默认）搬运工/园丁会把本区域地上的普通掉落捡进仓库（见上文）。只算**真正躺在地上**的东西：工作站刚产出的掉落会先放着，等它停稳再说（原版对刚弹出的掉落有同样的短暂延迟，延迟里连玩家都捡不起来）。关掉后 mod 不再动地上的东西，工作站服务照旧。
 
 #### 3. Tech point orbs / 科技点球 — `Tech point absorption range` (default **0**)
 
@@ -148,7 +148,7 @@ Useful lines:
 | `<station>: removed stale PickupOrder ...` | A leftover pickup order (item no longer in the station) was deleted on load |
 | `<station>: removed leftover DeliveryOrder ...` | A 1.2.x delivery order was deleted (stations feed themselves) |
 | `caretaker <guid>: order <guid> points at <guid> ... - order dropped` | A caretaker found an order whose target no longer exists; it was dropped instead of crashing the caretaker |
-| `zone drop scan: N loose drop(s) in M zone(s) the mod watches (turn on 'Detailed log' for one line per drop)` | Printed when the number of drops resting in the world changes — the line that says whether the drop feature sees anything at all. A drop that is still on its way down, or still queued for a scene that is not loaded, is not counted |
+| `zone drop scan: N loose drop(s) in M zone(s) the mod watches (turn on 'Detailed log' for one line per drop)` | Printed when the number of drops the mod watches changes — the line that says whether the drop feature sees anything at all. A drop still on its way down is not counted |
 | `loose drop in <zone>: <item> xN -> <chest> [guid] (distance N)` | With `Detailed log` on: one line per drop, naming the storage it would go into |
 | `loose drop in <zone>: <item> xN - big item carried over the head, left for the player` | An item the player holds overhead (a log, a supply crate) — never pocketed or stored |
 | `loose drop in <zone>: <item> xN - wgo-linked item, left for the player` | Logs, corpses and other world-linked items are deliberately left alone |
@@ -179,9 +179,10 @@ If a station never produces anything, first check whether its zone appears in `c
 
 ## Changelog / 更新日志
 
+### 1.6.3
+- **A fresh drop is waited out before it is taken.** A drop is written the moment the item is dropped, but it is not lying there yet: the game holds every fresh drop back for a moment (`DropView` starts a collect delay, and `DropCollector.CanCollectDrop` refuses the drop until it is over — the player cannot pick it up either). The errand picks its targets out of `DropData` and never asked, so it could pull an item out of the air the instant a craft finished. It now uses the same rule. A drop whose view cannot be found counts as landed, so a failed lookup can never leave an item lying around for good.
+
 ### 1.6.2
-- **Only drops that are really on the ground are taken.** A scene keeps two drop lists, and the mod read both: the drops lying in the world, and `queuedDrops` — drops meant for a scene that is not loaded yet, which the game moves into the world when that scene loads. A queued drop has no view, no spot to walk to and nothing the player could see, so reading it only let a zombie take an item that had never hit the ground. The errand and the zone drop scan now read the world list alone.
-- **A drop a station has just produced is waited out.** The game holds every drop back for a moment after it pops out (`DropView` starts a collect delay, and `DropCollector.CanCollectDrop` refuses the drop until it is over — the player cannot pick it up either), but the errand picks drops out of `DropData` and never asked. It now uses the same rule, so a worker cannot pull an item out of the air the instant a craft finishes. A drop whose view cannot be found counts as landed, so a failed lookup can never leave an item lying around for good.
 - **The gardener walks home after a hand-over.** The mod used to put him into `OnStation` where he stood — a state the game never produces by itself, whose branch only looks for a new order and never walks. So after taking a product (the peat out of a compost pile, for one) he stood at that station for good: the station had nothing left to hand him, the mod's short "wait at the station" hold kept the vanilla garden orders away from him, and nothing else could reach him either. The hand-over now ends with the game's own `GardenerTryMoveToStation`, exactly like every vanilla garden task does, so he walks back to his station and takes the next order there — a garden bed's or another mod's.
 - **A gardener another mod is using is no longer taken.** A mod that drives a gardener itself — Auto Harvest Fruit and Auto Harvest Honey do, hop by hop along their own routes — leaves it in `OnStation` the whole time, which looked exactly like an idle gardener. The mod now also checks the order in his hand and whether he is walking, and the station's hold steps aside for him too. Fixes the freeze that pairing the two mods used to cause (a gardener stranded in front of a composter with the peat icon still over his head).
 

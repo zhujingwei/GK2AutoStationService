@@ -1,4 +1,4 @@
-# Nexus 发布文案（Auto Station Service 1.6.2）
+# Nexus 发布文案（Auto Station Service 1.6.3）
 
 下面是可以直接复制粘贴到 Nexus 上传页的内容。上传步骤和检查清单在最下面。
 
@@ -110,7 +110,7 @@ Everything from this mod is logged to [b]BepInEx/LogOutput.log[/b] with the pref
 [*][i]the station cannot store its output[/i] — the station's storage is full, nothing was produced
 [*][i]the gardener cannot reach this station[/i] — pathing failed a few times, the station is left to the player
 [*][i]... took the tech points (red r, green g, blue b)[/i] — the carrier collected the craft's tech points (setting on)
-[*][i]zone drop scan: N loose drop(s) in M zone(s) the mod watches[/i] — the line that says the drop feature sees something at all (only drops resting in the world are counted)
+[*][i]zone drop scan: N loose drop(s) in M zone(s) the mod watches[/i] — the line that says the drop feature sees something at all. A drop still on its way down is not counted
 [*][i]going for loose drop item xN [...] in zone[/i] / [i]picked up item xN[/i] / [i]put item xN into <storage> on the spot[/i] — a zombie collecting a loose drop, and storing it
 [*][i]no chest can take item xN in zone - putting it back on the ground[/i] — no storage in that zone can take it, so it is dropped again
 [*][i]absorbed tech point orb tech_red[/i] — an orb on the ground went to the zombie
@@ -132,10 +132,11 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 ## Changelog（Nexus 的 Changelog 字段）
 
 ```
+1.6.3
+- Fixed: a drop a station had only just produced could be picked up by a zombie before it had landed. The game holds every drop back for a moment after it pops out and refuses it to the player until then; the errand now waits the same delay out, so nothing is pulled out of the air the instant a craft finishes.
+
 1.6.2
 - Fixed: after a gardener had carried a station's product away (the peat out of a compost pile, for one) he stayed in front of that station for good, with the product icon still over his head if he had not been able to put everything down. He is now sent home the vanilla way (the game's own "walk back to your station" call, the same one every vanilla garden task ends with) and takes the next order there.
-- Fixed: a drop a station had only just produced could be picked up by a zombie before it had landed. The game holds every drop back for a moment after it pops out and refuses it to the player until then; the errand now waits the same delay out, so nothing is pulled out of the air the instant a craft finishes.
-- Fixed: the mod also read the drops queued for a scene that is not loaded yet. A drop that has never hit the ground is not a drop, so only the drops lying in the world are taken now.
 - Fixed: a gardener that another mod is driving - Auto Harvest Fruit and Auto Harvest Honey steer their gardener hop by hop along routes of their own, and its idle state never changes while they do - was taken by this mod out of that route mid-walk, and neither mod could recover it. The mod now leaves a gardener who holds a garden order, or who is walking, to that other job, and its short "wait at the station" hold steps aside for him too.
 
 1.6.1
@@ -189,7 +190,7 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 
 ## 上传前检查清单
 
-1. **主文件**：上传 `dist/GK2AutoStationService-1.6.2.zip`（内部结构：`BepInEx/plugins/GK2AutoStationService.dll` + `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/zh.json`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.6.2.zip` 之外的任意名，但保持 `.zip`。
+1. **主文件**：上传 `dist/GK2AutoStationService-1.6.3.zip`（内部结构：`BepInEx/plugins/GK2AutoStationService.dll` + `BepInEx/plugins/GK2.Framework/Localization/com.gk2mod.autostationservice/zh.json`，Vortex 可直接部署）。文件名为 Nexus 上传后的显示名，可改成 `GK2AutoStationService-1.6.3.zip` 之外的任意名，但保持 `.zip`。
 2. **游戏页**：Graveyard Keeper 2（Steam app id 4358690，Nexus 上选游戏时不要选成一代 Graveyard Keeper）。
 3. **License / permissions**：Nexus 必填。建议 `MIT` 或 `All rights reserved + 允许转载/整合`；请自行决定，仓库里目前没有 LICENSE 文件。
 4. **图片**：Nexus 页面首图不是必填但强烈建议（1600×900 或相近 16:9）。需要的话可以让我生成一张标题图/截图版式。
@@ -197,4 +198,4 @@ Source code and build instructions: https://github.com/zhujingwei/GK2AutoStation
 6. **Related mods**：如果之后也发布 Caretaker Priority，两边互相填 Related；本 mod 不依赖它，单独可用。
 7. **Source 字段**：填 `https://github.com/zhujingwei/GK2AutoStationService`（Description 里也写了）。
 8. **首次发布**：Nexus 新 mod 需要等待审核/首页曝光（普通 mod 立即发布，仅成人/敏感内容才审核）；上传后建议在 Description 里保留排查用的日志关键字，减少问答量。
-9. **GitHub 侧可选**：给 `v1.6.2` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.6.2.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。
+9. **GitHub 侧可选**：给 `v1.6.3` 打 tag / 建 Release 并附上 `dist/GK2AutoStationService-1.6.3.zip`，方便别人直接从源码页下载（Nexus 仍作为主要下载渠道）。

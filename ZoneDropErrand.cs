@@ -1043,7 +1043,10 @@ namespace GK2AutoStationService
         // and holds the collider only exists once the item is in the world. The view is therefore what
         // gets asked, and only a view that answers "still collecting delayed" or "already flying to a
         // collector" holds the errand back - a drop whose view cannot be found at all counts as landed,
-        // so a lookup that fails can never park an item on the ground for good
+        // so a lookup that fails can never park an item on the ground for good. Drops of a zone whose
+        // scene is not loaded have no view and need none: they are written straight into the world's
+        // data, the delay is about an item coming down rather than about a scene, and the errand is
+        // free to take them
         internal static bool IsLanded(DropData drop)
         {
             DropView view = FindView(drop);
@@ -1157,20 +1160,35 @@ namespace GK2AutoStationService
             return zone.wholeZoneRect.Contains(new Vector2(position.x, position.z));
         }
 
-        // only the drops that are actually lying in the world. GameSceneData keeps a second list,
-        // queuedDrops, and DropSystem.DropItemInternal puts a drop there - instead of into the world -
-        // whenever its scene is not loaded yet; GameSceneData.ProcessQueuedDrops turns those into real
-        // drops later, when the scene loads. A queued drop has no view, no spot anyone could walk to and
-        // nothing the player could see, so it is none of the errand's business: going through that list
-        // only lets a worker take an item out of the queue before it ever hits the ground
+        // every drop the zone holds, from both of the lists a scene keeps. droppedItems is what lies in
+        // the world; queuedDrops is where DropSystem.DropItemInternal puts a drop whose scene is not
+        // loaded at that moment, and GameSceneData.ProcessQueuedDrops moves those into the world when
+        // the scene loads. That is a difference in the view layer, not in the drop: the item is created
+        // all the same, at the same position in the same world. And a worker is not part of the view
+        // layer either - ZombieSystem ticks every placed zombie wherever it stands, MovementComponent
+        // carries a position, and the nav graphs are loaded game-wide; none of that asks whether the
+        // zombie's scene is loaded. So a drop waiting in a zone nobody has loaded is exactly the kind
+        // of thing this errand is for, and the zone a worker stands in is the only zone he ever looks
+        // at. What keeps him off a fresh drop is not which list it is in but whether it has come down
+        // yet (IsLanded)
         private static List<DropData> DropsOf(WorldZoneData zone)
         {
             List<DropData> result = new List<DropData>();
 
             GameSceneData scene = SceneOf(zone);
-            if (scene != null && scene.droppedItems != null)
+            if (scene == null)
+            {
+                return result;
+            }
+
+            if (scene.droppedItems != null)
             {
                 result.AddRange(scene.droppedItems);
+            }
+
+            if (scene.queuedDrops != null)
+            {
+                result.AddRange(scene.queuedDrops);
             }
 
             return result;
